@@ -82,6 +82,20 @@ const taskSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             default: null
+        },
+
+        submissionLink: {
+            type: String,
+            default: ""
+        },
+
+        submissionNote: {
+            type: String,
+            default: ""
+        },
+
+        submittedAt: {
+            type: Date
         }
     },
     {
