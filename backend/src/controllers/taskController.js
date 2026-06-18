@@ -48,9 +48,49 @@ const createTask = async (req, res) => {
 const getAllTasks = async (req, res) => {
     try {
 
-        const tasks = await Task.find({
+        const {
+            category,
+            skill,
+            budgetMin,
+            budgetMax,
+            duration
+        } = req.query;
+
+        const filter = {
             status: "open"
-        }).populate("postedBy", "companyName");
+        };
+
+        if (category) {
+            filter.category = category;
+        }
+
+        if (skill) {
+            filter.skillsRequired = {
+                $in: [skill]
+            };
+        }
+
+        if (budgetMin || budgetMax) {
+
+            filter.budget = {};
+
+            if (budgetMin) {
+                filter.budget.$gte = Number(budgetMin);
+            }
+
+            if (budgetMax) {
+                filter.budget.$lte = Number(budgetMax);
+            }
+        }
+
+        if (duration) {
+            filter.duration = {
+                $lte: Number(duration)
+            };
+        }
+
+        const tasks = await Task.find(filter)
+            .populate("postedBy", "companyName");
 
         res.status(200).json({
             success: true,
@@ -264,7 +304,7 @@ const submitWork = async (req, res) => {
 
 
 
-markTaskComplete = async (req, res) => {
+const markTaskComplete = async (req, res) => {
     try {
 
         const task = await Task.findById(req.params.id);

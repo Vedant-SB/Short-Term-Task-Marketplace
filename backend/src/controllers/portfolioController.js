@@ -2,7 +2,7 @@ const Task = require("../models/Task");
 const Review = require("../models/Review");
 const { getProfile } = require("./authController");
 
-getPortfolio = async (req, res) => {
+const getPortfolio = async (req, res) => {
     try {
 
         const { userId } = req.params;
