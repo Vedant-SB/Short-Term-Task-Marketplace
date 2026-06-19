@@ -37,4 +37,9 @@ const reviewSchema = new mongoose.Schema(
 }
 );
 
+reviewSchema.index({
+    taskId: 1,
+    reviewerId: 1
+});
+
 module.exports = mongoose.model("Review", reviewSchema);

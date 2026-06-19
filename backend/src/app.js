@@ -7,6 +7,7 @@ const applicationRoutes = require("./routes/applicationRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const portfolioRoutes = require("./routes/portfolioRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const errorMiddleware = require("./middleware/errorMiddleware");
 
 const app = express();
 
@@ -19,5 +20,6 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use(errorMiddleware);
 
 module.exports = app;

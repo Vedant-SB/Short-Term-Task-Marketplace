@@ -14,15 +14,4 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.get("/profile", authMiddleware, getProfile);
 
-router.get(
-    "/test-company",
-    authMiddleware,
-    allowRoles("company"),
-    (req, res) => {
-        res.json({
-            message: "Company route accessed"
-        });
-    }
-);
-
 module.exports = router;

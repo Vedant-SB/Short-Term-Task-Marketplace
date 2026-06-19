@@ -97,13 +97,20 @@ const getApplicantsForTask = async (req, res) => {
             });
         }
 
+        if (task.status !== "open") {
+            return res.status(400).json({
+                success: false,
+                message: "An applicant has already been selected for this task"
+            });
+        }
+
         const applications = await Application.find({
             taskId
         })
-        .populate(
-            "applicantId",
-            "name individualType skills"
-        );
+            .populate(
+                "applicantId",
+                "name individualType skills"
+            );
 
         res.status(200).json({
             success: true,
@@ -195,8 +202,45 @@ const acceptApplication = async (req, res) => {
     }
 };
 
+
+
+const getMyApplications = async (req, res) => {
+    try {
+
+        const applications = await Application.find({
+            applicantId: req.user.userId
+        })
+            .populate({
+                path: "taskId",
+                select: "title budget status category duration",
+                populate: {
+                    path: "postedBy",
+                    select: "companyName"
+                }
+            })
+            .sort({
+                createdAt: -1
+            });
+
+        res.status(200).json({
+            success: true,
+            count: applications.length,
+            applications
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};
+
 module.exports = {
     applyToTask,
     getApplicantsForTask,
-    acceptApplication
+    acceptApplication,
+    getMyApplications
 };

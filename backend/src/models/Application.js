@@ -32,4 +32,9 @@ const applicationSchema = new mongoose.Schema(
 }
 );
 
+applicationSchema.index({
+    taskId: 1,
+    applicantId: 1
+});
+
 module.exports = mongoose.model("Application", applicationSchema);

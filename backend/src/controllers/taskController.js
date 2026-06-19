@@ -184,9 +184,26 @@ const updateTask = async (req, res) => {
             });
         }
 
+        const allowedUpdates = {
+            title: req.body.title,
+            description: req.body.description,
+            category: req.body.category,
+            skillsRequired: req.body.skillsRequired,
+            budget: req.body.budget,
+            duration: req.body.duration,
+            deliverables: req.body.deliverables,
+            eligibleFor: req.body.eligibleFor
+        };
+
+        Object.keys(allowedUpdates).forEach(key => {
+            if (allowedUpdates[key] === undefined) {
+                delete allowedUpdates[key];
+            }
+        });
+
         const updatedTask = await Task.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            allowedUpdates,
             {
                 new: true,
                 runValidators: true
@@ -277,6 +294,13 @@ const submitWork = async (req, res) => {
             return res.status(403).json({
                 success: false,
                 message: "Only selected applicant can submit work"
+            });
+        }
+
+        if(!submissionLink || !submissionNote){
+            return res.status(400).json({
+                success : false,
+                message : "Submission link and note required"
             });
         }
 
