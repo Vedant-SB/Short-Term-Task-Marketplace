@@ -17,6 +17,10 @@ function Navbar() {
 
       {user ? (
         <>
+          <Link to="/my-applications">
+            My Applications
+          </Link>
+
           <span>{user.role}</span>
 
           <button onClick={handleLogout}>

@@ -14,14 +14,16 @@ import IndividualDashboard from "./pages/dashboard/IndividualDashboard";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 
+import MyApplications from "./pages/applications/MyApplications";
+
 import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-      <Navbar />
-      
+        <Navbar />
+
         <Routes>
 
           <Route path="/login" element={<Login />} />
@@ -58,6 +60,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <IndividualDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/my-applications"
+            element={
+              <ProtectedRoute>
+                <MyApplications />
               </ProtectedRoute>
             }
           />
