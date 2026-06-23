@@ -1,121 +1,129 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
+import { useAuth } from "../../context/AuthContext";
+import { Navigate } from "react-router-dom";
 
 function MyApplications() {
 
-  const [applications, setApplications] =
-    useState([]);
+    const { user } = useAuth();
 
-  const [loading, setLoading] =
-    useState(true);
+    const [applications, setApplications] =
+        useState([]);
 
-  useEffect(() => {
+    const [loading, setLoading] =
+        useState(true);
 
-    const fetchApplications =
-      async () => {
+    if (user?.role !== "individual") {
+        return <Navigate to="/" />;
+    }
 
-        try {
+    useEffect(() => {
 
-          const response =
-            await api.get(
-              "/applications/my-applications"
-            );
+        const fetchApplications =
+            async () => {
 
-          console.log(
-            response.data
-          );
+                try {
 
-          setApplications(
-            response.data.applications
-          );
+                    const response =
+                        await api.get(
+                            "/applications/my-applications"
+                        );
 
-        } catch (error) {
+                    console.log(
+                        response.data
+                    );
 
-          console.log(error);
+                    setApplications(
+                        response.data.applications
+                    );
 
-        } finally {
+                } catch (error) {
 
-          setLoading(false);
+                    console.log(error);
 
-        }
+                } finally {
 
-      };
+                    setLoading(false);
 
-    fetchApplications();
-
-  }, []);
-
-  if (loading) {
-    return <h2>Loading...</h2>;
-  }
-
-  return (
-    <div>
-
-      <h1>
-        My Applications
-      </h1>
-
-      {applications.length === 0 ? (
-        <p>
-          No Applications Yet
-        </p>
-      ) : (
-
-        applications.map(
-          (application) => (
-
-            <div
-              key={application._id}
-              style={{
-                border:
-                  "1px solid black",
-                marginBottom: "10px",
-                padding: "10px",
-              }}
-            >
-
-              <h3>
-                {
-                  application.taskId
-                    ?.title
                 }
-              </h3>
 
-              <p>
-                Company:
-                {
-                  application.taskId
-                    ?.postedBy
-                    ?.companyName
-                }
-              </p>
+            };
 
-              <p>
-                Budget:
-                ₹
-                {
-                  application.taskId
-                    ?.budget
-                }
-              </p>
+        fetchApplications();
 
-              <p>
-                Status:
-                {
-                  application.status
-                }
-              </p>
+    }, []);
 
-            </div>
+    if (loading) {
+        return <h2>Loading...</h2>;
+    }
 
-          )
-        )
+    return (
+        <div>
 
-      )}
+            <h1>
+                My Applications
+            </h1>
 
-    </div>
-  );
+            {applications.length === 0 ? (
+                <p>
+                    No Applications Yet
+                </p>
+            ) : (
+
+                applications.map(
+                    (application) => (
+
+                        <div
+                            key={application._id}
+                            style={{
+                                border:
+                                    "1px solid black",
+                                marginBottom: "10px",
+                                padding: "10px",
+                            }}
+                        >
+
+                            <h3>
+                                {
+                                    application.taskId
+                                        ?.title
+                                }
+                            </h3>
+
+                            <p>
+                                Company:
+                                {
+                                    application.taskId
+                                        ?.postedBy
+                                        ?.companyName
+                                }
+                            </p>
+
+                            <p>
+                                Budget:
+                                ₹
+                                {
+                                    application.taskId
+                                        ?.budget
+                                }
+                            </p>
+
+                            <p>
+                                Status:
+                                {
+                                    application.status
+                                }
+                            </p>
+
+                        </div>
+
+                    )
+                )
+
+            )}
+
+        </div>
+    );
 }
 
 export default MyApplications;

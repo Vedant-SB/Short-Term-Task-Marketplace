@@ -1,4 +1,9 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 
@@ -15,6 +20,7 @@ import IndividualDashboard from "./pages/dashboard/IndividualDashboard";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 import MyApplications from "./pages/applications/MyApplications";
+import TaskApplicants from "./pages/applications/TaskApplicants";
 
 import { AuthProvider } from "./context/AuthContext";
 
@@ -22,23 +28,29 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+
         <Navbar />
 
         <Routes>
 
-          <Route path="/login" element={<Login />} />
-
-          <Route path="/register" element={<Register />} />
-
-          <Route path="/tasks" element={<TaskList />} />
+          <Route
+            path="/"
+            element={<Navigate to="/tasks" />}
+          />
 
           <Route
-            path="/tasks/create"
-            element={
-              <ProtectedRoute>
-                <CreateTask />
-              </ProtectedRoute>
-            }
+            path="/login"
+            element={<Login />}
+          />
+
+          <Route
+            path="/register"
+            element={<Register />}
+          />
+
+          <Route
+            path="/tasks"
+            element={<TaskList />}
           />
 
           <Route
@@ -47,9 +59,22 @@ function App() {
           />
 
           <Route
+            path="/tasks/create"
+            element={
+              <ProtectedRoute
+                allowedRoles={["company"]}
+              >
+                <CreateTask />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/company-dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute
+                allowedRoles={["company"]}
+              >
                 <CompanyDashboard />
               </ProtectedRoute>
             }
@@ -58,7 +83,9 @@ function App() {
           <Route
             path="/individual-dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute
+                allowedRoles={["individual"]}
+              >
                 <IndividualDashboard />
               </ProtectedRoute>
             }
@@ -67,13 +94,27 @@ function App() {
           <Route
             path="/my-applications"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute
+                allowedRoles={["individual"]}
+              >
                 <MyApplications />
               </ProtectedRoute>
             }
           />
 
+          <Route
+            path="/task-applicants/:taskId"
+            element={
+              <ProtectedRoute
+                allowedRoles={["company"]}
+              >
+                <TaskApplicants />
+              </ProtectedRoute>
+            }
+          />
+
         </Routes>
+
       </BrowserRouter>
     </AuthProvider>
   );
