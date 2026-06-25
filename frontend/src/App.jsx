@@ -10,6 +10,7 @@ import Navbar from "./components/Navbar";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 
+import SubmitWork from "./pages/tasks/SubmitWork";
 import TaskList from "./pages/tasks/TaskList";
 import CreateTask from "./pages/tasks/CreateTask";
 import TaskDetails from "./pages/tasks/TaskDetails";
@@ -56,6 +57,17 @@ function App() {
           <Route
             path="/tasks/:id"
             element={<TaskDetails />}
+          />
+
+          <Route
+            path="/tasks/:id/submit"
+            element={
+              <ProtectedRoute
+                allowedRoles={["individual"]}
+              >
+                <SubmitWork />
+              </ProtectedRoute>
+            }
           />
 
           <Route

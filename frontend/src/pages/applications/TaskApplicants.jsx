@@ -131,15 +131,35 @@ function TaskApplicants() {
                 }
               </p>
 
-              <button
-                onClick={() =>
-                  handleAccept(
-                    application._id
-                  )
-                }
-              >
-                Accept Applicant
-              </button>
+              {application.status === "pending" && (
+
+                <button
+                  onClick={() =>
+                    handleAccept(
+                      application._id
+                    )
+                  }
+                >
+                  Accept Applicant
+                </button>
+
+              )}
+
+              {application.status === "accepted" && (
+
+                <p>
+                  Selected Applicant
+                </p>
+
+              )}
+
+              {application.status === "rejected" && (
+
+                <p>
+                  Application Rejected
+                </p>
+
+              )}
 
             </div>
 

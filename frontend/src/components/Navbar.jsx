@@ -33,10 +33,6 @@ function Navbar() {
 
       {user?.role === "individual" && (
         <>
-          <Link to="/my-applications">
-            My Applications
-          </Link>
-
           <Link to="/individual-dashboard">
             Dashboard
           </Link>

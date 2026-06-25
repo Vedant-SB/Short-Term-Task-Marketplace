@@ -57,14 +57,32 @@ function IndividualDashboard() {
 
   const getDaysLeft = (task) => {
 
-    const createdDate = new Date(task.createdAt);
-    const deadline = new Date(createdDate);
+    if (
+      !task ||
+      !task.createdAt ||
+      !task.duration
+    ) {
+      return null;
+    }
 
-    deadline.setDate(deadline.getDate() + task.duration);
+    const createdDate =
+      new Date(task.createdAt);
+
+    const deadline =
+      new Date(createdDate);
+
+    deadline.setDate(
+      deadline.getDate() +
+      Number(task.duration)
+    );
+
     const today = new Date();
-    const diffTime = deadline - today;
 
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(
+      (deadline - today) /
+      (1000 * 60 * 60 * 24)
+    );
+
   };
 
   const totalApplications =
@@ -83,10 +101,29 @@ function IndividualDashboard() {
       app => app.status === "rejected"
     ).length;
 
-  const acceptedTasks =
+  const acceptedTaskApplications =
     applications.filter(
       app =>
-        app.status === "accepted"
+        app.status === "accepted" &&
+        app.taskId
+    );
+
+  const acceptedTasks =
+    acceptedTaskApplications.filter(
+      app =>
+        app.taskId?.status === "in_progress"
+    );
+
+  const submittedTasks =
+    acceptedTaskApplications.filter(
+      app =>
+        app.taskId?.status === "under_review"
+    );
+
+  const completedTasks =
+    acceptedTaskApplications.filter(
+      app =>
+        app.taskId?.status === "completed"
     );
 
   const priorityTasks =
@@ -146,7 +183,6 @@ function IndividualDashboard() {
       </h2>
 
       {applications
-        .sort(...)
         .slice(0, 5)
         .map(application => (
 
@@ -196,20 +232,39 @@ function IndividualDashboard() {
               >
 
                 <h3>
-                  {
-                    application.taskId
-                      ?.title
-                  }
+                  <Link
+                    to={`/tasks/${application.taskId._id}`}
+                  >
+                    <h3>
+                      {
+                        application.taskId
+                          ?.title
+                      }
+                    </h3>
+                  </Link>
                 </h3>
 
                 <p>
                   Deadline:
                   {
-                    daysLeft < 0
-                      ? " Overdue"
-                      : ` ${daysLeft} days left`
+                    daysLeft === null
+                      ? " N/A"
+                      : daysLeft < 0
+                        ? " Overdue"
+                        : ` ${daysLeft} days left`
                   }
                 </p>
+
+                {application.taskId?.status ===
+                  "in_progress" && (
+
+                    <Link
+                      to={`/tasks/${application.taskId._id}/submit`}
+                    >
+                      Submit Work
+                    </Link>
+
+                  )}
 
               </div>
 
@@ -275,32 +330,134 @@ function IndividualDashboard() {
                 ?.status ===
                 "in_progress" && (
 
-                  <button>
+                  <Link
+                    to={`/tasks/${application.taskId._id}/submit`}
+                  >
                     Submit Work
-                  </button>
+                  </Link>
 
                 )}
 
-              {application.taskId
-                ?.status ===
-                "under_review" && (
+            </div>
 
-                  <p>
-                    Work Submitted
-                    - Awaiting Review
-                  </p>
+          )
+        )
 
-                )}
+      )}
 
-              {application.taskId
-                ?.status ===
-                "completed" && (
+      <hr />
 
-                  <p>
-                    Task Completed
-                  </p>
+      <h2>
+        Submitted Tasks
+      </h2>
 
-                )}
+      {submittedTasks.length === 0 ? (
+
+        <p>
+          No Submitted Tasks
+        </p>
+
+      ) : (
+
+        submittedTasks.map(
+          application => (
+
+            <div
+              key={application._id}
+              style={{
+                border:
+                  "1px solid black",
+                padding: "10px",
+                marginBottom:
+                  "10px",
+              }}
+            >
+
+              <h3>
+                {
+                  application.taskId
+                    ?.title
+                }
+              </h3>
+
+              <p>
+                Status:
+                {
+                  application.taskId
+                    ?.status
+                }
+              </p>
+
+              <Link
+                to={`/tasks/${application.taskId._id}`}
+              >
+                View Task
+              </Link>
+
+              <p>
+                Work Submitted
+                - Awaiting Review
+              </p>
+
+            </div>
+
+          )
+        )
+
+      )}
+
+      <hr />
+
+      <h2>
+        Completed Tasks
+      </h2>
+
+      {completedTasks.length === 0 ? (
+
+        <p>
+          No Completed Tasks
+        </p>
+
+      ) : (
+
+        completedTasks.map(
+          application => (
+
+            <div
+              key={application._id}
+              style={{
+                border:
+                  "1px solid black",
+                padding: "10px",
+                marginBottom:
+                  "10px",
+              }}
+            >
+
+              <h3>
+                {
+                  application.taskId
+                    ?.title
+                }
+              </h3>
+
+              <p>
+                Status:
+                {
+                  application.taskId
+                    ?.status
+                }
+              </p>
+
+              <Link
+                to={`/tasks/${application.taskId._id}`}
+              >
+                View Task
+              </Link>
+
+              <p>
+                Task Completed
+              </p>
 
             </div>
 

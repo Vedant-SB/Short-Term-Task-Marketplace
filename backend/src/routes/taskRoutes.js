@@ -12,7 +12,7 @@ router.get("/", getAllTasks);
 router.put("/:id/complete", authMiddleware, allowRoles("company"), markTaskComplete);
 router.get("/my-tasks", authMiddleware, allowRoles("company"), getMyTasks);
 router.put("/:id/submit", authMiddleware, allowRoles("individual"), submitWork);
-router.get("/:id", getTaskById);
+router.get("/:id", authMiddleware, getTaskById);
 router.put("/:id", authMiddleware, allowRoles("company"), updateTask);
 router.delete("/:id", authMiddleware, allowRoles("company"), deleteTask);
 

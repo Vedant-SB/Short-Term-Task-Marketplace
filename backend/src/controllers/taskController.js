@@ -1,4 +1,5 @@
 const Task = require("../models/Task");
+const Application = require("../models/Application");
 
 const createTask = async (req, res) => {
     try {
@@ -123,9 +124,28 @@ const getTaskById = async (req, res) => {
             });
         }
 
+        let hasApplied = false;
+
+        if (
+            req.user &&
+            req.user.role === "individual"
+        ) {
+
+            const existingApplication =
+                await Application.findOne({
+                    taskId: task._id,
+                    applicantId:
+                        req.user.userId
+                });
+
+            hasApplied =
+                !!existingApplication;
+        }
+
         res.status(200).json({
             success: true,
-            task
+            task,
+            hasApplied
         });
 
     } catch (error) {
@@ -145,7 +165,11 @@ const getMyTasks = async (req, res) => {
 
         const tasks = await Task.find({
             postedBy: req.user.userId
-        });
+        })
+            .populate(
+                "selectedApplicant",
+                "name individualType"
+            );
 
         res.status(200).json({
             success: true,
@@ -297,10 +321,10 @@ const submitWork = async (req, res) => {
             });
         }
 
-        if(!submissionLink || !submissionNote){
+        if (!submissionLink || !submissionNote) {
             return res.status(400).json({
-                success : false,
-                message : "Submission link and note required"
+                success: false,
+                message: "Submission link and note required"
             });
         }
 

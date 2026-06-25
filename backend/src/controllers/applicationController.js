@@ -97,13 +97,6 @@ const getApplicantsForTask = async (req, res) => {
             });
         }
 
-        if (task.status !== "open") {
-            return res.status(400).json({
-                success: false,
-                message: "An applicant has already been selected for this task"
-            });
-        }
-
         const applications = await Application.find({
             taskId
         })
@@ -212,7 +205,7 @@ const getMyApplications = async (req, res) => {
         })
             .populate({
                 path: "taskId",
-                select: "title budget status category duration",
+                select: "title budget status category duration createdAt",
                 populate: {
                     path: "postedBy",
                     select: "companyName"

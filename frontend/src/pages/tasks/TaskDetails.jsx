@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 
 function TaskDetails() {
 
   const { id } = useParams();
+
   const { user } = useAuth();
-  const [message, setMessage] = useState("");
 
   const [task, setTask] = useState(null);
+
   const [loading, setLoading] = useState(true);
+
+  const [message, setMessage] = useState("");
+
+  const [hasApplied, setHasApplied] =
+    useState(false);
 
   useEffect(() => {
 
@@ -22,9 +28,17 @@ function TaskDetails() {
           `/tasks/${id}`
         );
 
-        console.log(response.data);
+        console.log(
+          response.data.task
+        );
 
-        setTask(response.data.task);
+        setTask(
+          response.data.task
+        );
+
+        setHasApplied(
+          response.data.hasApplied
+        );
 
       } catch (error) {
 
@@ -42,14 +56,6 @@ function TaskDetails() {
 
   }, [id]);
 
-  if (loading) {
-    return <h2>Loading...</h2>;
-  }
-
-  if (!task) {
-    return <h2>Task Not Found</h2>;
-  }
-
   const handleApply = async () => {
 
     try {
@@ -65,6 +71,8 @@ function TaskDetails() {
         response.data.message
       );
 
+      setHasApplied(true);
+
     } catch (error) {
 
       setMessage(
@@ -76,10 +84,21 @@ function TaskDetails() {
 
   };
 
+  if (loading) {
+    return <h2>Loading...</h2>;
+  }
+
+  if (!task) {
+    return <h2>Task Not Found</h2>;
+  }
+
   return (
+
     <div>
 
-      <h1>{task.title}</h1>
+      <h1>
+        {task.title}
+      </h1>
 
       <p>
         Description:
@@ -93,7 +112,7 @@ function TaskDetails() {
 
       <p>
         Duration:
-        {task.duration}
+        {task.duration} days
       </p>
 
       <p>
@@ -106,18 +125,88 @@ function TaskDetails() {
         {task.category}
       </p>
 
+      {task.postedBy && (
+
+        <p>
+          Company:
+          {
+            task.postedBy
+              .companyName
+          }
+        </p>
+
+      )}
+
       {message && (
         <p>{message}</p>
       )}
 
-      {user?.role === "individual" && (
-        <button onClick={handleApply}>
-          Apply To Task
-        </button>
+      {user?.role === "individual" &&
+        task.status === "open" &&
+        !hasApplied && (
+
+          <button
+            onClick={handleApply}
+          >
+            Apply To Task
+          </button>
+
+        )}
+
+      {user?.role === "individual" &&
+        hasApplied && (
+
+          <p>
+            Already Applied
+          </p>
+
+        )}
+
+      {task.status === "in_progress" && (
+
+        <p>
+          Task In Progress
+        </p>
+
       )}
 
+      {task.status ===
+        "under_review" && (
+
+          <p>
+            Work Submitted -
+            Awaiting Review
+          </p>
+
+        )}
+
+      {task.status ===
+        "completed" && (
+
+          <p>
+            Task Completed
+          </p>
+
+        )}
+
+      {user?.role === "individual" &&
+        task.status ===
+        "in_progress" &&
+        task.selectedApplicant ===
+        user.userId && (
+
+          <Link
+            to={`/tasks/${task._id}/submit`}
+          >
+            Submit Work
+          </Link>
+
+        )}
+
     </div>
+
   );
+
 }
 
 export default TaskDetails;

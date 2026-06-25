@@ -93,6 +93,13 @@ function CompanyDashboard() {
       task => task.status === "in_progress"
     ).length;
 
+  const underReviewTasks =
+    tasks.filter(
+      task =>
+        task.status ===
+        "under_review"
+    ).length;
+
   const completedTasks =
     tasks.filter(
       task => task.status === "completed"
@@ -120,6 +127,11 @@ function CompanyDashboard() {
       <h3>
         In Progress:
         {inProgressTasks}
+      </h3>
+
+      <h3>
+        Under Review:
+        {underReviewTasks}
       </h3>
 
       <h3>
@@ -225,11 +237,38 @@ function CompanyDashboard() {
                   }
                 </p>
 
-                <Link
-                  to={`/task-applicants/${task._id}`}
-                >
-                  View Applicants
-                </Link>
+                {task.selectedApplicant && (
+
+                  <p>
+
+                    Assigned To:
+
+                    {
+                      task.selectedApplicant.name
+                    }
+
+                    {" ("}
+
+                    {
+                      task.selectedApplicant
+                        .individualType
+                    }
+
+                    {")"}
+
+                  </p>
+
+                )}
+
+                {task.status === "open" && (
+
+                  <Link
+                    to={`/task-applicants/${task._id}`}
+                  >
+                    View Applicants
+                  </Link>
+
+                )}
 
               </div>
 
