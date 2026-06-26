@@ -38,4 +38,4 @@ pids
 *.seed
 *.pid.lock
 
-backend/test data.txt
+test data.txt
