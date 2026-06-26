@@ -1,5 +1,9 @@
 const Task = require("../models/Task");
 const Application = require("../models/Application");
+const {
+    getTaskReviewStatusMap,
+    buildReviewStatus
+} = require("../utils/reviewHelpers");
 
 const createTask = async (req, res) => {
     try {
@@ -115,7 +119,11 @@ const getTaskById = async (req, res) => {
     try {
 
         const task = await Task.findById(req.params.id)
-            .populate("postedBy", "companyName");
+            .populate("postedBy", "companyName")
+            .populate(
+                "selectedApplicant",
+                "name email individualType"
+            );
 
         if (!task) {
             return res.status(404).json({
@@ -142,9 +150,20 @@ const getTaskById = async (req, res) => {
                 !!existingApplication;
         }
 
+        const reviewStatus =
+            buildReviewStatus(
+                (await getTaskReviewStatusMap([
+                    task._id
+                ])).get(task._id.toString()) || []
+            );
+
+        const taskData = task.toObject();
+
+        taskData.reviewStatus = reviewStatus;
+
         res.status(200).json({
             success: true,
-            task,
+            task: taskData,
             hasApplied
         });
 
@@ -171,10 +190,27 @@ const getMyTasks = async (req, res) => {
                 "name individualType"
             );
 
+        const reviewMap =
+            await getTaskReviewStatusMap(
+                tasks.map(task => task._id)
+            );
+
+        const tasksWithReviews = tasks.map((task) => {
+            const taskData = task.toObject();
+            taskData.reviewStatus =
+                buildReviewStatus(
+                    reviewMap.get(
+                        task._id.toString()
+                    ) || []
+                );
+
+            return taskData;
+        });
+
         res.status(200).json({
             success: true,
-            count: tasks.length,
-            tasks
+            count: tasksWithReviews.length,
+            tasks: tasksWithReviews
         });
 
     } catch (error) {
@@ -304,10 +340,13 @@ const submitWork = async (req, res) => {
             });
         }
 
-        if (task.status !== "in_progress") {
+        if (
+            task.status !== "in_progress" &&
+            task.status !== "revision_requested"
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Task is not in progress"
+                message: "Task is not in progress or awaiting revision"
             });
         }
 
@@ -331,6 +370,11 @@ const submitWork = async (req, res) => {
         task.submissionLink = submissionLink;
         task.submissionNote = submissionNote;
         task.submittedAt = new Date();
+
+        // Clear revision fields on resubmission
+        task.revisionReason = "";
+        task.revisionExpectedChanges = "";
+        task.revisionRequestedAt = undefined;
 
         task.status = "under_review";
 
@@ -396,6 +440,64 @@ const markTaskComplete = async (req, res) => {
     }
 };
 
+
+
+const requestChanges = async (req, res) => {
+    try {
+
+        const { reason, expectedChanges } = req.body;
+
+        const task = await Task.findById(req.params.id);
+
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                message: "Task not found"
+            });
+        }
+
+        if (task.postedBy.toString() !== req.user.userId) {
+            return res.status(403).json({
+                success: false,
+                message: "Not authorized"
+            });
+        }
+
+        if (task.status !== "under_review") {
+            return res.status(400).json({
+                success: false,
+                message: "Task is not under review"
+            });
+        }
+
+        if (!reason || !expectedChanges) {
+            return res.status(400).json({
+                success: false,
+                message: "Reason and expected changes are required"
+            });
+        }
+
+        task.status = "revision_requested";
+        task.revisionReason = reason;
+        task.revisionExpectedChanges = expectedChanges;
+        task.revisionRequestedAt = new Date();
+
+        await task.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Revision requested successfully",
+            task
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     createTask,
     getAllTasks,
@@ -404,5 +506,6 @@ module.exports = {
     updateTask,
     deleteTask,
     submitWork,
-    markTaskComplete
+    markTaskComplete,
+    requestChanges
 };

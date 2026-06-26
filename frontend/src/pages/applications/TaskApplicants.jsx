@@ -8,6 +8,7 @@ function TaskApplicants() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [acceptingId, setAcceptingId] = useState(null);
 
   const fetchApplicants = async () => {
 
@@ -44,6 +45,17 @@ function TaskApplicants() {
     applicationId
   ) => {
 
+    const confirmed = window.confirm(
+      "Accept this applicant?\n\nYou won't be able to select another applicant later."
+    );
+
+    if (!confirmed) return;
+
+    if (acceptingId) return;
+
+    setAcceptingId(applicationId);
+    setMessage("");
+
     try {
 
       const response =
@@ -64,6 +76,10 @@ function TaskApplicants() {
         "Failed to accept applicant"
       );
 
+    } finally {
+
+      setAcceptingId(null);
+
     }
 
   };
@@ -82,7 +98,7 @@ function TaskApplicants() {
       )}
 
       {applications.length === 0 ? (
-        <p>No Applicants Yet</p>
+        <p>No applicants have applied yet.</p>
       ) : (
 
         applications.map(
@@ -139,8 +155,12 @@ function TaskApplicants() {
                       application._id
                     )
                   }
+                  disabled={acceptingId === application._id}
                 >
-                  Accept Applicant
+                  {acceptingId === application._id
+                    ? "Accepting..."
+                    : "Accept Applicant"
+                  }
                 </button>
 
               )}

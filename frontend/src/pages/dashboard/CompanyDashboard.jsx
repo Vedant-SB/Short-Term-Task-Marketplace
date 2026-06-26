@@ -100,10 +100,40 @@ function CompanyDashboard() {
         "under_review"
     ).length;
 
+  const revisionRequestedTasks =
+    tasks.filter(
+      task =>
+        task.status ===
+        "revision_requested"
+    ).length;
+
   const completedTasks =
     tasks.filter(
       task => task.status === "completed"
     ).length;
+
+  const pendingReviews =
+    tasks.filter(
+      task =>
+        task.status === "completed" &&
+        !task.reviewStatus?.companyReviewSubmitted
+    ).length;
+
+  const completedReviews =
+    tasks.filter(
+      task =>
+        task.status === "completed" &&
+        task.reviewStatus?.companyReviewSubmitted
+    ).length;
+
+  const activeFilterLabel = {
+    all: "All",
+    open: "Open",
+    in_progress: "In Progress",
+    under_review: "Under Review",
+    revision_requested: "Revision Requested",
+    completed: "Completed",
+  }[filter] || "All";
 
   if (loading) {
     return <h2>Loading...</h2>;
@@ -135,8 +165,23 @@ function CompanyDashboard() {
       </h3>
 
       <h3>
+        Revision Requested:
+        {revisionRequestedTasks}
+      </h3>
+
+      <h3>
         Completed:
         {completedTasks}
+      </h3>
+
+      <h3>
+        Pending Reviews:
+        {pendingReviews}
+      </h3>
+
+      <h3>
+        Completed Reviews:
+        {completedReviews}
       </h3>
 
       <hr />
@@ -175,6 +220,14 @@ function CompanyDashboard() {
 
       <button
         onClick={() =>
+          setFilter("revision_requested")
+        }
+      >
+        Revision Requested
+      </button>
+
+      <button
+        onClick={() =>
           setFilter("completed")
         }
       >
@@ -183,8 +236,17 @@ function CompanyDashboard() {
 
       <hr />
 
+      <h3>
+        Showing: {activeFilterLabel} Tasks
+      </h3>
+
       {filteredTasks.length === 0 ? (
-        <p>No Tasks Found</p>
+        <p>
+          {filter === "all"
+            ? "You haven't created any tasks yet."
+            : `No ${filter.replace(/_/g, " ")} tasks found.`
+          }
+        </p>
       ) : (
 
         filteredTasks.map(
@@ -205,17 +267,16 @@ function CompanyDashboard() {
                 }}
               >
 
-                <Link
-                  to={`/tasks/${task._id}`}
-                >
-                  <h3>
-                    {task.title}
-                  </h3>
-                </Link>
+                <h3>
+                  {task.title}
+                </h3>
 
                 <p>
-                  Status:
-                  {task.status}
+                  Status:{" "}
+                  {task.status === "revision_requested"
+                    ? "Revision Requested"
+                    : task.status
+                  }
                 </p>
 
                 <p>
@@ -233,41 +294,77 @@ function CompanyDashboard() {
                   {
                     daysLeft < 0
                       ? " Overdue"
-                      : `${daysLeft} days left`
+                      : ` ${daysLeft} days left`
                   }
                 </p>
 
-                {task.selectedApplicant && (
+                <Link to={`/tasks/${task._id}`}>
+                  View Details
+                </Link>
+
+                {task.status === "open" && (
+                  <>
+                    {" | "}
+                    <Link to={`/task-applicants/${task._id}`}>
+                      View Applicants
+                    </Link>
+                  </>
+                )}
+
+                {task.status === "in_progress" &&
+                  task.selectedApplicant && (
 
                   <p>
-
-                    Assigned To:
-
-                    {
-                      task.selectedApplicant.name
-                    }
-
+                    Assigned To:{" "}
+                    {task.selectedApplicant.name}
                     {" ("}
-
-                    {
-                      task.selectedApplicant
-                        .individualType
-                    }
-
+                    {task.selectedApplicant.individualType}
                     {")"}
-
                   </p>
 
                 )}
 
-                {task.status === "open" && (
+                {task.status === "under_review" && (
+                  <>
+                    {" | "}
+                    <Link to={`/tasks/${task._id}/review`}>
+                      Review Submission
+                    </Link>
+                  </>
+                )}
 
-                  <Link
-                    to={`/task-applicants/${task._id}`}
-                  >
-                    View Applicants
-                  </Link>
+                {task.status === "completed" &&
+                  !task.reviewStatus?.companyReviewSubmitted && (
+                  <>
+                    <p>
+                      Pending Review
+                    </p>
 
+                    {" | "}
+                    <Link to={`/tasks/${task._id}/review`}>
+                      Leave Review
+                    </Link>
+                  </>
+                )}
+
+                {task.status === "completed" &&
+                  task.reviewStatus?.companyReviewSubmitted && (
+                  <p>
+                    Company Review Submitted
+                  </p>
+                )}
+
+                {task.status === "completed" &&
+                  task.reviewStatus?.individualReviewSubmitted && (
+                  <p>
+                    Individual Review Submitted
+                  </p>
+                )}
+
+                {task.status === "revision_requested" && (
+                  <p>
+                    Waiting for resubmission.
+                  </p>
                 )}
 
               </div>

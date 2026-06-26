@@ -38,6 +38,11 @@ const taskSchema = new mongoose.Schema(
             type: [String],
             enum: [
                 "student",
+                "first_year_student",
+                "second_year_student",
+                "third_year_student",
+                "final_year_student",
+                "fresh_graduate",
                 "professional",
                 "freelancer"
             ],
@@ -66,6 +71,7 @@ const taskSchema = new mongoose.Schema(
                 "open",
                 "in_progress",
                 "under_review",
+                "revision_requested",
                 "completed",
                 "closed"
             ],
@@ -95,6 +101,20 @@ const taskSchema = new mongoose.Schema(
         },
 
         submittedAt: {
+            type: Date
+        },
+
+        revisionReason: {
+            type: String,
+            default: ""
+        },
+
+        revisionExpectedChanges: {
+            type: String,
+            default: ""
+        },
+
+        revisionRequestedAt: {
             type: Date
         }
     },

@@ -15,7 +15,7 @@ function Register() {
     industry: "",
     website: "",
 
-    individualType: "student",
+    individualType: "first_year_student",
     name: "",
     college: "",
     bio: "",
@@ -147,17 +147,37 @@ function Register() {
               value={formData.individualType}
               onChange={handleChange}
             >
-              <option value="student">
-                Student
-              </option>
+              <optgroup label="Students">
+                <option value="first_year_student">
+                  First Year Student
+                </option>
 
-              <option value="professional">
-                Professional
-              </option>
+                <option value="second_year_student">
+                  Second Year Student
+                </option>
 
-              <option value="freelancer">
-                Freelancer
-              </option>
+                <option value="third_year_student">
+                  Third Year Student
+                </option>
+
+                <option value="final_year_student">
+                  Final Year Student
+                </option>
+
+                <option value="fresh_graduate">
+                  Fresh Graduate
+                </option>
+              </optgroup>
+
+              <optgroup label="Professionals">
+                <option value="professional">
+                  Professional
+                </option>
+
+                <option value="freelancer">
+                  Freelancer
+                </option>
+              </optgroup>
             </select>
 
             <br />
@@ -182,7 +202,14 @@ function Register() {
 
             <br />
 
-            {formData.individualType === "student" && (
+            {[
+              "student",
+              "first_year_student",
+              "second_year_student",
+              "third_year_student",
+              "final_year_student",
+              "fresh_graduate",
+            ].includes(formData.individualType) && (
               <input
                 type="text"
                 name="college"

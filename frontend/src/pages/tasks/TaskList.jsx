@@ -43,7 +43,7 @@ function TaskList() {
       <h1>Available Tasks</h1>
 
       {tasks.length === 0 ? (
-        <p>No Tasks Found</p>
+        <p>No tasks are currently available.</p>
       ) : (
         tasks.map((task) => (
           <div

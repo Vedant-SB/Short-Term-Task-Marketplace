@@ -1,9 +1,11 @@
 const Review = require("../models/Review");
 const Task = require("../models/Task");
+const {
+    REVIEW_TYPE_BY_ROLE
+} = require("../utils/reviewHelpers");
 
 const createReview = async (req, res) => {
     try {
-
         const { taskId } = req.params;
         const { rating, comment } = req.body;
 
@@ -23,12 +25,17 @@ const createReview = async (req, res) => {
             });
         }
 
-        let receiverId;
+        if (!task.selectedApplicant) {
+            return res.status(400).json({
+                success: false,
+                message: "Task must have a selected applicant before reviewing"
+            });
+        }
 
-        // Company reviewing selected applicant
+        let reviewee;
+        let reviewType;
 
         if (req.user.role === "company") {
-
             if (task.postedBy.toString() !== req.user.userId) {
                 return res.status(403).json({
                     success: false,
@@ -36,13 +43,9 @@ const createReview = async (req, res) => {
                 });
             }
 
-            receiverId = task.selectedApplicant;
-        }
-
-        // Individual reviewing company
-
-        else if (req.user.role === "individual") {
-
+            reviewee = task.selectedApplicant;
+            reviewType = REVIEW_TYPE_BY_ROLE.company;
+        } else if (req.user.role === "individual") {
             if (task.selectedApplicant.toString() !== req.user.userId) {
                 return res.status(403).json({
                     success: false,
@@ -50,14 +53,29 @@ const createReview = async (req, res) => {
                 });
             }
 
-            receiverId = task.postedBy;
+            reviewee = task.postedBy;
+            reviewType = REVIEW_TYPE_BY_ROLE.individual;
         }
 
-        // Duplicate review check
+        const normalizedRating = Number(rating);
+
+        if (!Number.isInteger(normalizedRating) || normalizedRating < 1 || normalizedRating > 5) {
+            return res.status(400).json({
+                success: false,
+                message: "Rating must be between 1 and 5"
+            });
+        }
+
+        if (!comment || !comment.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Comment is required"
+            });
+        }
 
         const existingReview = await Review.findOne({
-            taskId,
-            reviewerId: req.user.userId
+            task: taskId,
+            reviewType
         });
 
         if (existingReview) {
@@ -67,19 +85,27 @@ const createReview = async (req, res) => {
             });
         }
 
-        if (rating < 1 || rating > 5) {
-            return res.status(400).json({
-                success: false,
-                message: "Rating must be between 1 and 5"
+        if (req.user.role === "individual") {
+            const companyReview = await Review.findOne({
+                task: taskId,
+                reviewType: REVIEW_TYPE_BY_ROLE.company
             });
+
+            if (!companyReview) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Company review must be submitted first"
+                });
+            }
         }
 
         const review = await Review.create({
-            taskId,
-            reviewerId: req.user.userId,
-            receiverId,
-            rating,
-            comment
+            task: task._id,
+            reviewer: req.user.userId,
+            reviewee,
+            reviewType,
+            rating: normalizedRating,
+            comment: comment.trim()
         });
 
         res.status(201).json({
@@ -87,14 +113,11 @@ const createReview = async (req, res) => {
             message: "Review submitted successfully",
             review
         });
-
     } catch (error) {
-
         res.status(500).json({
             success: false,
             message: error.message
         });
-
     }
 };
 

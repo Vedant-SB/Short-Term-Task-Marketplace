@@ -18,8 +18,9 @@ const getPortfolio = async (req, res) => {
         for (const task of completedTasks) {
 
             const review = await Review.findOne({
-                taskId: task._id,
-                receiverId: userId
+                task: task._id,
+                reviewee: userId,
+                reviewType: "company_to_individual"
             });
 
             portfolio.push({

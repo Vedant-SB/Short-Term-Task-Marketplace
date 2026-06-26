@@ -1,6 +1,10 @@
 const Application = require("../models/Application");
 const Task = require("../models/Task");
 const User = require("../models/User");
+const {
+    getTaskReviewStatusMap,
+    buildReviewStatus
+} = require("../utils/reviewHelpers");
 
 const applyToTask = async (req, res) => {
     try {
@@ -20,13 +24,52 @@ const applyToTask = async (req, res) => {
             req.user.userId
         );
 
-        if (
-            task.eligibleFor &&
-            task.eligibleFor.length > 0 &&
-            !task.eligibleFor.includes(
-                user.individualType
-            )
-        ) {
+        const studentTypes = [
+            "student",
+            "first_year_student",
+            "second_year_student",
+            "third_year_student",
+            "final_year_student",
+            "fresh_graduate"
+        ];
+
+        const isEligible = () => {
+            if (
+                !task.eligibleFor ||
+                task.eligibleFor.length === 0
+            ) {
+                return true;
+            }
+
+            const userType = user.individualType;
+
+            if (task.eligibleFor.includes(userType)) {
+                return true;
+            }
+
+            // Backward compatibility:
+            // Legacy "student" user can apply to any student sub-type task
+            if (
+                userType === "student" &&
+                task.eligibleFor.some(e =>
+                    studentTypes.includes(e)
+                )
+            ) {
+                return true;
+            }
+
+            // Legacy task with "student" accepts all student sub-types
+            if (
+                task.eligibleFor.includes("student") &&
+                studentTypes.includes(userType)
+            ) {
+                return true;
+            }
+
+            return false;
+        };
+
+        if (!isEligible()) {
             return res.status(403).json({
                 success: false,
                 message: "You are not eligible for this task"
@@ -205,7 +248,7 @@ const getMyApplications = async (req, res) => {
         })
             .populate({
                 path: "taskId",
-                select: "title budget status category duration createdAt",
+                select: "title budget status category duration createdAt revisionReason revisionExpectedChanges",
                 populate: {
                     path: "postedBy",
                     select: "companyName"
@@ -215,10 +258,37 @@ const getMyApplications = async (req, res) => {
                 createdAt: -1
             });
 
+        const reviewMap =
+            await getTaskReviewStatusMap(
+                applications
+                    .map(application =>
+                        application.taskId?._id
+                    )
+                    .filter(Boolean)
+            );
+
+        const applicationsWithReviews = applications.map(
+            (application) => {
+                const applicationData =
+                    application.toObject();
+
+                if (applicationData.taskId) {
+                    applicationData.taskId.reviewStatus =
+                        buildReviewStatus(
+                            reviewMap.get(
+                                applicationData.taskId._id.toString()
+                            ) || []
+                        );
+                }
+
+                return applicationData;
+            }
+        );
+
         res.status(200).json({
             success: true,
-            count: applications.length,
-            applications
+            count: applicationsWithReviews.length,
+            applications: applicationsWithReviews
         });
 
     } catch (error) {

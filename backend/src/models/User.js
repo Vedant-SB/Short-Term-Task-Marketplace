@@ -51,7 +51,16 @@ const userSchema = new mongoose.Schema(
 
     individualType: {
         type: String,
-        enum: ["student", "professional", "freelancer"]
+        enum: [
+            "student",
+            "first_year_student",
+            "second_year_student",
+            "third_year_student",
+            "final_year_student",
+            "fresh_graduate",
+            "professional",
+            "freelancer"
+        ]
     },
 
     name: {

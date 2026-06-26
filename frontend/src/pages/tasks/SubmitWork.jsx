@@ -20,10 +20,27 @@ function SubmitWork() {
     setMessage] =
     useState("");
 
+  const [submitting,
+    setSubmitting] =
+    useState(false);
+
   const handleSubmit =
     async (e) => {
 
       e.preventDefault();
+
+      const confirmed = window.confirm(
+        "Are you sure you want to submit your work?\n\nAfter submission your work will be sent to the company for review."
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      if (submitting) return;
+
+      setSubmitting(true);
+      setMessage("");
 
       try {
 
@@ -54,6 +71,10 @@ function SubmitWork() {
           error.response?.data?.message ||
           "Submission failed"
         );
+
+      } finally {
+
+        setSubmitting(false);
 
       }
 
@@ -118,8 +139,14 @@ function SubmitWork() {
 
         <br />
 
-        <button type="submit">
-          Submit Work
+        <button
+          type="submit"
+          disabled={submitting}
+        >
+          {submitting
+            ? "Submitting..."
+            : "Submit Work"
+          }
         </button>
 
       </form>

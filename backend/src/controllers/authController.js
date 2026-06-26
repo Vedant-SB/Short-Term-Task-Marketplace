@@ -1,6 +1,9 @@
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const User = require("../models/User")
+const {
+    getUserReviewSummary
+} = require("../utils/reviewHelpers");
 
 const registerUser = async (req, res) => {
     try {
@@ -87,10 +90,18 @@ const registerUser = async (req, res) => {
                 });
             }
 
-            if (
-                !["student", "professional", "freelancer"]
-                    .includes(individualType)
-            ) {
+            const validIndividualTypes = [
+                "student",
+                "first_year_student",
+                "second_year_student",
+                "third_year_student",
+                "final_year_student",
+                "fresh_graduate",
+                "professional",
+                "freelancer"
+            ];
+
+            if (!validIndividualTypes.includes(individualType)) {
                 return res.status(400).json({
                     message: "Invalid individual type"
                 });
@@ -102,8 +113,17 @@ const registerUser = async (req, res) => {
                 });
             }
 
+            const studentTypes = [
+                "student",
+                "first_year_student",
+                "second_year_student",
+                "third_year_student",
+                "final_year_student",
+                "fresh_graduate"
+            ];
+
             if (
-                individualType === "student" &&
+                studentTypes.includes(individualType) &&
                 !college
             ) {
                 return res.status(400).json({
@@ -218,7 +238,20 @@ const loginUser = async (req, res) => {
 const getProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.userId).select("-password");
-        return res.status(200).json(user);
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        const reviewSummary =
+            await getUserReviewSummary(req.user.userId);
+
+        return res.status(200).json({
+            ...user.toObject(),
+            reviewSummary
+        });
     } 
     
     catch (error) {

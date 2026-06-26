@@ -33,6 +33,10 @@ function Navbar() {
 
       {user?.role === "individual" && (
         <>
+          <Link to="/profile">
+            Profile
+          </Link>
+
           <Link to="/individual-dashboard">
             Dashboard
           </Link>
@@ -49,6 +53,10 @@ function Navbar() {
 
       {user?.role === "company" && (
         <>
+          <Link to="/profile">
+            Profile
+          </Link>
+
           <Link to="/tasks/create">
             Create Task
           </Link>

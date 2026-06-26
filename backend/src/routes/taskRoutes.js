@@ -2,17 +2,19 @@ const express = require("express");
 
 const router = express.Router();
 
-const { createTask,getAllTasks,getTaskById,getMyTasks,updateTask,deleteTask,submitWork,markTaskComplete } = require("../controllers/taskController");
+const { createTask,getAllTasks,getTaskById,getMyTasks,updateTask,deleteTask,submitWork,markTaskComplete,requestChanges } = require("../controllers/taskController");
 
 const authMiddleware = require("../middleware/authMiddleware");
+const optionalAuth = require("../middleware/optionalAuth");
 const allowRoles = require("../middleware/roleMiddleware");
 
 router.post("/", authMiddleware, allowRoles("company"), createTask);
 router.get("/", getAllTasks);
 router.put("/:id/complete", authMiddleware, allowRoles("company"), markTaskComplete);
+router.put("/:id/request-changes", authMiddleware, allowRoles("company"), requestChanges);
 router.get("/my-tasks", authMiddleware, allowRoles("company"), getMyTasks);
 router.put("/:id/submit", authMiddleware, allowRoles("individual"), submitWork);
-router.get("/:id", authMiddleware, getTaskById);
+router.get("/:id", optionalAuth, getTaskById);
 router.put("/:id", authMiddleware, allowRoles("company"), updateTask);
 router.delete("/:id", authMiddleware, allowRoles("company"), deleteTask);
 

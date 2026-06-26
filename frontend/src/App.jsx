@@ -14,14 +14,15 @@ import SubmitWork from "./pages/tasks/SubmitWork";
 import TaskList from "./pages/tasks/TaskList";
 import CreateTask from "./pages/tasks/CreateTask";
 import TaskDetails from "./pages/tasks/TaskDetails";
+import ReviewSubmission from "./pages/tasks/ReviewSubmission";
 
 import CompanyDashboard from "./pages/dashboard/CompanyDashboard";
 import IndividualDashboard from "./pages/dashboard/IndividualDashboard";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 
-import MyApplications from "./pages/applications/MyApplications";
 import TaskApplicants from "./pages/applications/TaskApplicants";
+import Profile from "./pages/profile/Profile";
 
 import { AuthProvider } from "./context/AuthContext";
 
@@ -103,16 +104,7 @@ function App() {
             }
           />
 
-          <Route
-            path="/my-applications"
-            element={
-              <ProtectedRoute
-                allowedRoles={["individual"]}
-              >
-                <MyApplications />
-              </ProtectedRoute>
-            }
-          />
+
 
           <Route
             path="/task-applicants/:taskId"
@@ -121,6 +113,26 @@ function App() {
                 allowedRoles={["company"]}
               >
                 <TaskApplicants />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/tasks/:id/review"
+            element={
+              <ProtectedRoute
+                allowedRoles={["company", "individual"]}
+              >
+                <ReviewSubmission />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />
