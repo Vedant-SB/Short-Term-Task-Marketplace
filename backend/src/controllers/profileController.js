@@ -15,33 +15,43 @@ const getPublicProfile = async (req, res) => {
         // ACCESS CONTROL
         // =========================
 
-        if (req.user.role === "individual") {
+        // Everyone can always view their own profile
+        if (req.user.userId !== userId) {
 
-            if (req.user.userId !== userId) {
+            if (req.user.role === "individual") {
+
                 return res.status(403).json({
                     success: false,
                     message: "You can only view your own profile"
                 });
+
             }
 
-        } else if (req.user.role === "company") {
+            if (req.user.role === "company") {
 
-            const companyTaskIds = await Task.distinct("_id", {
-                postedBy: req.user.userId
-            });
-
-            const hasApplied = companyTaskIds.length > 0
-                ? await Application.exists({
-                    applicantId: userId,
-                    taskId: { $in: companyTaskIds }
-                })
-                : null;
-
-            if (!hasApplied) {
-                return res.status(403).json({
-                    success: false,
-                    message: "You can only view profiles of applicants who applied to your tasks"
+                const companyTaskIds = await Task.distinct("_id", {
+                    postedBy: req.user.userId
                 });
+
+                const hasApplied = companyTaskIds.length > 0
+                    ? await Application.exists({
+                        applicantId: userId,
+                        taskId: {
+                            $in: companyTaskIds
+                        }
+                    })
+                    : null;
+
+                if (!hasApplied) {
+
+                    return res.status(403).json({
+                        success: false,
+                        message:
+                            "You can only view profiles of applicants who applied to your tasks"
+                    });
+
+                } 
+
             }
 
         }
@@ -60,16 +70,10 @@ const getPublicProfile = async (req, res) => {
             });
         }
 
-        // =========================
-        // REVIEW SUMMARY
-        // =========================
+        
 
         const reviewSummaryPromise =
             getUserReviewSummary(userId);
-
-        // =========================
-        // STATISTICS
-        // =========================
 
         const [
             reviewSummary,

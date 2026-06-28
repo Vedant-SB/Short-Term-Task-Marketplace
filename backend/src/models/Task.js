@@ -60,11 +60,7 @@ const taskSchema = new mongoose.Schema(
             required: true
         },
 
-        applicationDeadline: {
-            type: Date,
-            required: true
-        },
-
+        // Last date users can apply
         applicationDeadline: {
             type: Date,
             required: true
@@ -100,42 +96,25 @@ const taskSchema = new mongoose.Schema(
             default: null
         },
 
+        // Set when company accepts an applicant
         taskStartDate: {
             type: Date,
             default: null
         },
 
+        // Initial deadline = taskStartDate + duration
         originalDeadline: {
             type: Date,
             default: null
         },
 
+        // Current deadline after extensions
         currentDeadline: {
             type: Date,
             default: null
         },
 
-        deadlineExtensions: [
-            {
-                days: Number,
-
-                reason: String,
-
-                extendedAt: {
-                    type: Date,
-                    default: Date.now
-                }
-            }
-        ],
-
-        taskStartDate: {
-            type: Date
-        },
-
-        taskDeadline: {
-            type: Date
-        },
-
+        // Keeps history of every extension
         deadlineExtensions: [
             {
                 days: {
@@ -143,18 +122,27 @@ const taskSchema = new mongoose.Schema(
                     required: true,
                     min: 1
                 },
+
+                reason: {
+                    type: String,
+                    default: ""
+                },
+
                 previousDeadline: {
                     type: Date,
                     required: true
                 },
+
                 newDeadline: {
                     type: Date,
                     required: true
                 },
+
                 extendedAt: {
                     type: Date,
                     default: Date.now
                 },
+
                 extendedBy: {
                     type: mongoose.Schema.Types.ObjectId,
                     ref: "User",
@@ -196,20 +184,23 @@ const taskSchema = new mongoose.Schema(
     }
 );
 
+// Dashboard queries
 taskSchema.index({
     status: 1,
     category: 1,
     postedBy: 1
 });
 
+// Open tasks by application deadline
 taskSchema.index({
     status: 1,
     applicationDeadline: 1
 });
 
+// Active tasks by submission deadline
 taskSchema.index({
     status: 1,
-    taskDeadline: 1
+    currentDeadline: 1
 });
 
 module.exports = mongoose.model("Task", taskSchema);
