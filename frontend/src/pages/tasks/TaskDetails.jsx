@@ -1,22 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
-
-const ELIGIBLE_LABELS = {
-  student: "Student",
-  first_year_student: "First Year Student",
-  second_year_student: "Second Year Student",
-  third_year_student: "Third Year Student",
-  final_year_student: "Final Year Student",
-  fresh_graduate: "Fresh Graduate",
-  professional: "Professional",
-  freelancer: "Freelancer",
-};
+import { ELIGIBLE_LABELS } from "./taskFormConstants";
 
 function TaskDetails() {
 
   const { id } = useParams();
+
+  const navigate = useNavigate();
 
   const { user } = useAuth();
 
@@ -29,8 +21,29 @@ function TaskDetails() {
   const [hasApplied, setHasApplied] =
     useState(false);
 
+  const [applicationId, setApplicationId] =
+    useState(null);
+
+  const [applicationStatus, setApplicationStatus] =
+    useState(null);
+
+  const [applicationCount, setApplicationCount] =
+    useState(0);
+
   const [applying, setApplying] =
     useState(false);
+
+  const [withdrawing, setWithdrawing] =
+    useState(false);
+
+  const [deleting, setDeleting] =
+    useState(false);
+
+  const [extendingDeadline, setExtendingDeadline] =
+    useState(false);
+
+  const [customExtensionDays, setCustomExtensionDays] =
+    useState("");
 
   useEffect(() => {
 
@@ -48,6 +61,18 @@ function TaskDetails() {
 
         setHasApplied(
           response.data.hasApplied
+        );
+
+        setApplicationId(
+          response.data.applicationId
+        );
+
+        setApplicationStatus(
+          response.data.applicationStatus
+        );
+
+        setApplicationCount(
+          response.data.applicationCount || 0
         );
 
       } catch (error) {
@@ -87,6 +112,10 @@ function TaskDetails() {
       );
 
       setHasApplied(true);
+      setApplicationId(
+        response.data.application._id
+      );
+      setApplicationStatus("pending");
 
     } catch (error) {
 
@@ -101,6 +130,105 @@ function TaskDetails() {
 
     }
 
+  };
+
+  const handleWithdraw = async () => {
+
+    const confirmed = window.confirm(
+      "Withdraw your application?\n\nYou can reapply later if the task is still open."
+    );
+
+    if (!confirmed || withdrawing) return;
+
+    setWithdrawing(true);
+    setMessage("");
+
+    try {
+
+      const response = await api.put(
+        `/applications/${applicationId}/withdraw`
+      );
+
+      setMessage(
+        response.data.message
+      );
+
+      setHasApplied(false);
+      setApplicationId(null);
+      setApplicationStatus(null);
+
+    } catch (error) {
+
+      setMessage(
+        error.response?.data?.message ||
+        "Failed to withdraw"
+      );
+
+    } finally {
+
+      setWithdrawing(false);
+
+    }
+
+  };
+
+  const handleDelete = async () => {
+
+    const confirmed = window.confirm(
+      "Delete this task?\n\nThis action cannot be undone."
+    );
+
+    if (!confirmed || deleting) return;
+
+    setDeleting(true);
+    setMessage("");
+
+    try {
+
+      await api.delete(
+        `/tasks/${id}`
+      );
+
+      navigate("/company-dashboard");
+
+    } catch (error) {
+
+      setMessage(
+        error.response?.data?.message ||
+        "Failed to delete task"
+      );
+
+      setDeleting(false);
+
+    }
+
+  };
+
+  const handleExtendDeadline = async (
+    days
+  ) => {
+    if (extendingDeadline) return;
+
+    setExtendingDeadline(true);
+    setMessage("");
+
+    try {
+      const response = await api.put(
+        `/tasks/${id}/extend-deadline`,
+        { days }
+      );
+
+      setTask(response.data.task);
+      setMessage(response.data.message);
+      setCustomExtensionDays("");
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message ||
+        "Failed to extend deadline"
+      );
+    } finally {
+      setExtendingDeadline(false);
+    }
   };
 
   // =========================================
@@ -123,19 +251,29 @@ function TaskDetails() {
   const individualReviewSubmitted =
     !!reviewStatus.individualReviewSubmitted;
 
+  const canEdit =
+    isOwner &&
+    task?.status === "open" &&
+    applicationCount === 0;
+
+  const canDelete =
+    isOwner &&
+    task?.status === "open" &&
+    applicationCount === 0;
+
+  const canExtendDeadline =
+    isOwner &&
+    ["in_progress", "under_review", "revision_requested"].includes(
+      task?.status
+    );
+
   const getDaysLeft = () => {
 
-    if (!task?.createdAt || !task?.duration) {
+    if (!task?.taskDeadline) {
       return null;
     }
 
-    const createdDate = new Date(task.createdAt);
-
-    const deadline = new Date(createdDate);
-
-    deadline.setDate(
-      deadline.getDate() + task.duration
-    );
+    const deadline = new Date(task.taskDeadline);
 
     const today = new Date();
 
@@ -193,6 +331,38 @@ function TaskDetails() {
       </p>
 
       <p>
+        Application Closing:{" "}
+        {task.applicationDeadline
+          ? new Date(task.applicationDeadline).toLocaleDateString()
+          : "N/A"}
+      </p>
+
+      <p>
+        Task Start Date:{" "}
+        {task.taskStartDate
+          ? new Date(task.taskStartDate).toLocaleDateString()
+          : "Not started"}
+      </p>
+
+      <p>
+        Task Deadline:{" "}
+        {task.taskDeadline
+          ? new Date(task.taskDeadline).toLocaleDateString()
+          : "Not started"}
+      </p>
+
+      {task.taskDeadline && (
+        <p>
+          Days Left: {(() => {
+            const daysLeft = getDaysLeft();
+            if (daysLeft === null) return "N/A";
+            if (daysLeft < 0) return "Overdue";
+            return `${daysLeft} days left`;
+          })()}
+        </p>
+      )}
+
+      <p>
         Category: {task.category}
       </p>
 
@@ -233,11 +403,12 @@ function TaskDetails() {
         <p>{message}</p>
       )}
 
-      {/* =============================== */}
-      {/* PUBLIC USER (no user logged in)  */}
-      {/* =============================== */}
-
-      {/* No action buttons for public users */}
+      {task.deadlineExtensions &&
+        task.deadlineExtensions.length > 0 && (
+        <p>
+          Deadline Extensions: {task.deadlineExtensions.length}
+        </p>
+      )}
 
       {/* =============================== */}
       {/* INDIVIDUAL USER                  */}
@@ -265,7 +436,30 @@ function TaskDetails() {
           )}
 
           {task.status === "open" &&
-            hasApplied && (
+            hasApplied &&
+            applicationStatus === "pending" && (
+
+            <>
+              <p>
+                <strong>Already Applied</strong>
+              </p>
+
+              <button
+                onClick={handleWithdraw}
+                disabled={withdrawing}
+              >
+                {withdrawing
+                  ? "Withdrawing..."
+                  : "Withdraw Application"
+                }
+              </button>
+            </>
+
+          )}
+
+          {task.status === "open" &&
+            hasApplied &&
+            applicationStatus !== "pending" && (
 
             <p>
               <strong>Already Applied</strong>
@@ -444,6 +638,93 @@ function TaskDetails() {
       {user?.role === "company" && isOwner && (
 
         <>
+
+          {/* --- EDIT / DELETE --- */}
+
+          {canEdit && (
+            <Link
+              to={`/tasks/${task._id}/edit`}
+            >
+              Edit Task
+            </Link>
+          )}
+
+          {canDelete && (
+            <>
+              {" | "}
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting
+                  ? "Deleting..."
+                  : "Delete Task"
+                }
+              </button>
+            </>
+          )}
+
+          {(canEdit || canDelete) && <hr />}
+
+          {canExtendDeadline && (
+            <>
+              <h3>Extend Deadline</h3>
+
+              <button
+                onClick={() => handleExtendDeadline(1)}
+                disabled={extendingDeadline}
+              >
+                +1 day
+              </button>
+
+              {" "}
+
+              <button
+                onClick={() => handleExtendDeadline(2)}
+                disabled={extendingDeadline}
+              >
+                +2 days
+              </button>
+
+              {" "}
+
+              <button
+                onClick={() => handleExtendDeadline(3)}
+                disabled={extendingDeadline}
+              >
+                +3 days
+              </button>
+
+              {" "}
+
+              <input
+                type="number"
+                min="1"
+                placeholder="Custom days"
+                value={customExtensionDays}
+                onChange={(e) =>
+                  setCustomExtensionDays(e.target.value)
+                }
+                disabled={extendingDeadline}
+              />
+
+              {" "}
+
+              <button
+                onClick={() =>
+                  handleExtendDeadline(Number(customExtensionDays))
+                }
+                disabled={
+                  extendingDeadline ||
+                  !customExtensionDays ||
+                  Number(customExtensionDays) < 1
+                }
+              >
+                Extend
+              </button>
+              <hr />
+            </>
+          )}
 
           {/* --- OPEN --- */}
 

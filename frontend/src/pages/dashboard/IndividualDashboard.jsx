@@ -5,77 +5,100 @@ import api from "../../api/axios";
 function IndividualDashboard() {
 
   const [applications, setApplications] = useState([]);
-  const [filteredApplications, setFilteredApplications] = useState([]);
   const [filter, setFilter] = useState("all");
   const [taskFilter, setTaskFilter] = useState("all");
+  const [taskSearchQuery, setTaskSearchQuery] = useState("");
+  const [appSearchQuery, setAppSearchQuery] = useState("");
+  const [taskSortBy, setTaskSortBy] = useState("newest");
   const [loading, setLoading] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState({});
+  const [withdrawingId, setWithdrawingId] = useState(null);
 
   useEffect(() => {
-    const fetchApplications =
-      async () => {
 
-        try {
+    const fetchData = async () => {
 
-          const response =
-            await api.get(
+      try {
+
+        const [appRes, dashRes] =
+          await Promise.all([
+            api.get(
               "/applications/my-applications"
-            );
+            ),
+            api.get("/dashboard/individual"),
+          ]);
 
-          setApplications(response.data.applications);
-          setFilteredApplications(response.data.applications);
+        setApplications(appRes.data.applications);
+        setDashboardStats(
+          dashRes.data.dashboard
+        );
 
-        } catch (error) {
+      } catch (error) {
 
-          console.log(error);
+        console.log(error);
 
-        } finally {
+      } finally {
 
-          setLoading(false);
+        setLoading(false);
 
-        }
+      }
 
-      };
+    };
 
-    fetchApplications();
+    fetchData();
 
   }, []);
 
-  useEffect(() => {
+  const handleWithdraw = async (
+    applicationId
+  ) => {
 
-    if (filter === "all") {
-      setFilteredApplications(applications);
-    } else {
+    const confirmed = window.confirm(
+      "Withdraw this application?"
+    );
 
-      const filtered =
-        applications.filter(application =>
-          application.status === filter);
+    if (!confirmed || withdrawingId) return;
 
-      setFilteredApplications(filtered);
+    setWithdrawingId(applicationId);
+
+    try {
+
+      await api.put(
+        `/applications/${applicationId}/withdraw`
+      );
+
+      setApplications(
+        applications.filter(
+          app => app._id !== applicationId
+        )
+      );
+
+    } catch (error) {
+
+      alert(
+        error.response?.data?.message ||
+        "Failed to withdraw"
+      );
+
+    } finally {
+
+      setWithdrawingId(null);
 
     }
 
-  }, [filter, applications]);
+  };
 
   const getDaysLeft = (task) => {
 
     if (
       !task ||
-      !task.createdAt ||
-      !task.duration
+      !task.taskDeadline
     ) {
       return null;
     }
 
-    const createdDate =
-      new Date(task.createdAt);
-
     const deadline =
-      new Date(createdDate);
-
-    deadline.setDate(
-      deadline.getDate() +
-      Number(task.duration)
-    );
+      new Date(task.taskDeadline);
 
     const today = new Date();
 
@@ -85,6 +108,10 @@ function IndividualDashboard() {
     );
 
   };
+
+  // ===========================
+  // COMPUTED VALUES
+  // ===========================
 
   const totalApplications =
     applications.length;
@@ -109,7 +136,11 @@ function IndividualDashboard() {
         app.taskId
     );
 
-  const filteredMyTasks =
+  // ===========================
+  // MY TASKS - FILTER + SEARCH + SORT
+  // ===========================
+
+  let filteredMyTasks =
     acceptedTaskApplications.filter(
       (application) => {
         if (taskFilter === "all") {
@@ -120,6 +151,49 @@ function IndividualDashboard() {
       }
     );
 
+  // Search my tasks
+  if (taskSearchQuery.trim()) {
+    const query =
+      taskSearchQuery.toLowerCase();
+
+    filteredMyTasks = filteredMyTasks.filter(
+      app =>
+        app.taskId?.title
+          ?.toLowerCase()
+          .includes(query) ||
+        app.taskId?.category
+          ?.toLowerCase()
+          .includes(query)
+    );
+  }
+
+  // Sort my tasks
+  filteredMyTasks = [...filteredMyTasks].sort(
+    (a, b) => {
+
+      switch (taskSortBy) {
+        case "oldest":
+          return new Date(a.taskId?.createdAt) -
+            new Date(b.taskId?.createdAt);
+        case "status":
+          return (a.taskId?.status || "").localeCompare(
+            b.taskId?.status || ""
+          );
+        case "completed_first":
+          if (a.taskId?.status === "completed" &&
+            b.taskId?.status !== "completed") return -1;
+          if (b.taskId?.status === "completed" &&
+            a.taskId?.status !== "completed") return 1;
+          return 0;
+        case "newest":
+        default:
+          return new Date(b.taskId?.createdAt) -
+            new Date(a.taskId?.createdAt);
+      }
+
+    }
+  );
+
   const activeTaskFilterLabel = {
     all: "All",
     in_progress: "In Progress",
@@ -127,6 +201,37 @@ function IndividualDashboard() {
     revision_requested: "Revision Requested",
     completed: "Completed",
   }[taskFilter] || "All";
+
+  // ===========================
+  // APPLICATIONS - FILTER + SEARCH
+  // ===========================
+
+  let filteredApplications = [...applications];
+
+  if (filter !== "all") {
+    filteredApplications = filteredApplications.filter(
+      app => app.status === filter
+    );
+  }
+
+  if (appSearchQuery.trim()) {
+    const query =
+      appSearchQuery.toLowerCase();
+
+    filteredApplications = filteredApplications.filter(
+      app =>
+        app.taskId?.title
+          ?.toLowerCase()
+          .includes(query) ||
+        app.taskId?.category
+          ?.toLowerCase()
+          .includes(query)
+    );
+  }
+
+  // ===========================
+  // PRIORITY TASKS
+  // ===========================
 
   const pendingReviews =
     acceptedTaskApplications.filter(
@@ -176,16 +281,20 @@ function IndividualDashboard() {
 
       <hr />
 
+      {/* =============================== */}
+      {/* STATISTICS                       */}
+      {/* =============================== */}
+
       <h2>Statistics</h2>
 
       <p>
-        Total Applications:
+        Applications:
         {totalApplications}
       </p>
 
       <p>
         Pending:
-        {pendingApplications}
+        {dashboardStats.pendingApplications || pendingApplications}
       </p>
 
       <p>
@@ -194,11 +303,30 @@ function IndividualDashboard() {
       </p>
 
       <p>
-        Rejected:
-        {rejectedApplications}
+        Completed:
+        {dashboardStats.completedTasks || 0}
+      </p>
+
+      <p>
+        Portfolio Projects:
+        {dashboardStats.portfolioProjects || 0}
+      </p>
+
+      <p>
+        Average Rating:
+        {dashboardStats.averageRating || 0}
+      </p>
+
+      <p>
+        Reviews Received:
+        {dashboardStats.reviewCount || 0}
       </p>
 
       <hr />
+
+      {/* =============================== */}
+      {/* RECENT UPDATES                   */}
+      {/* =============================== */}
 
       <h2>
         Recent Updates
@@ -229,6 +357,10 @@ function IndividualDashboard() {
       )}
 
       <hr />
+
+      {/* =============================== */}
+      {/* PRIORITY TASKS                   */}
+      {/* =============================== */}
 
       <h2>
         Priority Tasks
@@ -332,12 +464,23 @@ function IndividualDashboard() {
       <hr />
 
       {/* =============================== */}
-      {/* MY TASKS (unified section)       */}
+      {/* MY TASKS                         */}
       {/* =============================== */}
 
       <h2>
         My Tasks
       </h2>
+
+      <input
+        type="text"
+        placeholder="Search my tasks..."
+        value={taskSearchQuery}
+        onChange={(e) =>
+          setTaskSearchQuery(e.target.value)
+        }
+      />
+
+      <br /><br />
 
       <button
         onClick={() => setTaskFilter("all")}
@@ -368,6 +511,20 @@ function IndividualDashboard() {
       >
         Completed
       </button>
+
+      <br /><br />
+
+      <select
+        value={taskSortBy}
+        onChange={(e) =>
+          setTaskSortBy(e.target.value)
+        }
+      >
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="status">Status</option>
+        <option value="completed_first">Completed First</option>
+      </select>
 
       <h3>
         Showing: {activeTaskFilterLabel} Tasks
@@ -539,6 +696,17 @@ function IndividualDashboard() {
         Applications
       </h2>
 
+      <input
+        type="text"
+        placeholder="Search applications..."
+        value={appSearchQuery}
+        onChange={(e) =>
+          setAppSearchQuery(e.target.value)
+        }
+      />
+
+      <br /><br />
+
       <button
         onClick={() =>
           setFilter("all")
@@ -627,6 +795,29 @@ function IndividualDashboard() {
               >
                 View Details
               </Link>
+
+              {application.status === "pending" && (
+
+                <>
+                  {" | "}
+                  <button
+                    onClick={() =>
+                      handleWithdraw(
+                        application._id
+                      )
+                    }
+                    disabled={
+                      withdrawingId === application._id
+                    }
+                  >
+                    {withdrawingId === application._id
+                      ? "Withdrawing..."
+                      : "Withdraw"
+                    }
+                  </button>
+                </>
+
+              )}
 
             </div>
 

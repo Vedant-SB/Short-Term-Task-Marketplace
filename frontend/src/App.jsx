@@ -15,6 +15,7 @@ import TaskList from "./pages/tasks/TaskList";
 import CreateTask from "./pages/tasks/CreateTask";
 import TaskDetails from "./pages/tasks/TaskDetails";
 import ReviewSubmission from "./pages/tasks/ReviewSubmission";
+import EditTask from "./pages/tasks/EditTask";
 
 import CompanyDashboard from "./pages/dashboard/CompanyDashboard";
 import IndividualDashboard from "./pages/dashboard/IndividualDashboard";
@@ -58,6 +59,17 @@ function App() {
           <Route
             path="/tasks/:id"
             element={<TaskDetails />}
+          />
+
+          <Route
+            path="/tasks/:id/edit"
+            element={
+              <ProtectedRoute
+                allowedRoles={["company"]}
+              >
+                <EditTask />
+              </ProtectedRoute>
+            }
           />
 
           <Route
@@ -130,6 +142,15 @@ function App() {
 
           <Route
             path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile/:userId"
             element={
               <ProtectedRoute>
                 <Profile />

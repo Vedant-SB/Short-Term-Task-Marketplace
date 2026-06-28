@@ -5,7 +5,7 @@ const authRoutes = require("./routes/authRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
-const portfolioRoutes = require("./routes/portfolioRoutes");
+const profileRoutes = require("./routes/profileRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const errorMiddleware = require("./middleware/errorMiddleware");
 
@@ -18,7 +18,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/applications", applicationRoutes);
-app.use("/api/portfolio", portfolioRoutes);
+app.use("/api/profiles", profileRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use(errorMiddleware);
 

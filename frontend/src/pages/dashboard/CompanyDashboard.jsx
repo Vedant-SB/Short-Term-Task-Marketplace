@@ -5,22 +5,29 @@ import api from "../../api/axios";
 function CompanyDashboard() {
 
   const [tasks, setTasks] = useState([]);
-  const [filteredTasks, setFilteredTasks] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
   const [loading, setLoading] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState({});
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
 
-    const fetchTasks = async () => {
+    const fetchData = async () => {
 
       try {
 
-        const response = await api.get(
-          "/tasks/my-tasks"
-        );
+        const [tasksRes, dashboardRes] =
+          await Promise.all([
+            api.get("/tasks/my-tasks"),
+            api.get("/dashboard/company"),
+          ]);
 
-        setTasks(response.data.tasks);
-        setFilteredTasks(response.data.tasks);
+        setTasks(tasksRes.data.tasks);
+        setDashboardStats(
+          dashboardRes.data.dashboard
+        );
 
       } catch (error) {
 
@@ -34,39 +41,17 @@ function CompanyDashboard() {
 
     };
 
-    fetchTasks();
+    fetchData();
 
   }, []);
 
-  useEffect(() => {
-
-    if (filter === "all") {
-      setFilteredTasks(tasks);
-    } else {
-
-      const filtered = tasks.filter(
-        task => task.status === filter
-      );
-
-      setFilteredTasks(filtered);
-
-    }
-
-  }, [filter, tasks]);
-
   const getDaysLeft = (task) => {
 
-    const createdDate = new Date(
-      task.createdAt
-    );
+    if (!task?.taskDeadline) {
+      return null;
+    }
 
-    const deadline = new Date(
-      createdDate
-    );
-
-    deadline.setDate(
-      deadline.getDate() + task.duration
-    );
+    const deadline = new Date(task.taskDeadline);
 
     const today = new Date();
 
@@ -80,6 +65,97 @@ function CompanyDashboard() {
     return diffDays;
 
   };
+
+  const handleDelete = async (taskId) => {
+
+    const confirmed = window.confirm(
+      "Delete this task?\n\nThis action cannot be undone."
+    );
+
+    if (!confirmed || deletingId) return;
+
+    setDeletingId(taskId);
+
+    try {
+
+      await api.delete(
+        `/tasks/${taskId}`
+      );
+
+      setTasks(
+        tasks.filter(
+          task => task._id !== taskId
+        )
+      );
+
+    } catch (error) {
+
+      alert(
+        error.response?.data?.message ||
+        "Failed to delete task"
+      );
+
+    } finally {
+
+      setDeletingId(null);
+
+    }
+
+  };
+
+  // ===========================
+  // FILTER + SEARCH + SORT
+  // ===========================
+
+  let displayTasks = [...tasks];
+
+  // Filter
+  if (filter !== "all") {
+    displayTasks = displayTasks.filter(
+      task => task.status === filter
+    );
+  }
+
+  // Search
+  if (searchQuery.trim()) {
+    const query =
+      searchQuery.toLowerCase();
+
+    displayTasks = displayTasks.filter(
+      task =>
+        task.title
+          .toLowerCase()
+          .includes(query) ||
+        task.category
+          .toLowerCase()
+          .includes(query)
+    );
+  }
+
+  // Sort
+  displayTasks.sort((a, b) => {
+
+    switch (sortBy) {
+      case "oldest":
+        return new Date(a.createdAt) -
+          new Date(b.createdAt);
+      case "budget":
+        return b.budget - a.budget;
+      case "status":
+        return a.status.localeCompare(
+          b.status
+        );
+      case "newest":
+      default:
+        return new Date(b.createdAt) -
+          new Date(a.createdAt);
+    }
+
+  });
+
+  // ===========================
+  // COMPUTED STATS
+  // ===========================
 
   const totalTasks = tasks.length;
 
@@ -146,6 +222,10 @@ function CompanyDashboard() {
         Company Dashboard
       </h1>
 
+      {/* =============================== */}
+      {/* STATISTICS                       */}
+      {/* =============================== */}
+
       <h3>
         Total Tasks: {totalTasks}
       </h3>
@@ -175,6 +255,21 @@ function CompanyDashboard() {
       </h3>
 
       <h3>
+        Applications Received:{" "}
+        {dashboardStats.applicationsReceived || 0}
+      </h3>
+
+      <h3>
+        Individuals Hired:{" "}
+        {dashboardStats.individualsHired || 0}
+      </h3>
+
+      <h3>
+        Average Rating:{" "}
+        {dashboardStats.averageRating || 0}
+      </h3>
+
+      <h3>
         Pending Reviews:
         {pendingReviews}
       </h3>
@@ -185,6 +280,29 @@ function CompanyDashboard() {
       </h3>
 
       <hr />
+
+      {/* =============================== */}
+      {/* SEARCH                           */}
+      {/* =============================== */}
+
+      <h2>
+        Search Tasks
+      </h2>
+
+      <input
+        type="text"
+        placeholder="Search by title or category..."
+        value={searchQuery}
+        onChange={(e) =>
+          setSearchQuery(e.target.value)
+        }
+      />
+
+      <hr />
+
+      {/* =============================== */}
+      {/* FILTER                           */}
+      {/* =============================== */}
 
       <h2>
         Filter Tasks
@@ -236,11 +354,31 @@ function CompanyDashboard() {
 
       <hr />
 
+      {/* =============================== */}
+      {/* SORT                             */}
+      {/* =============================== */}
+
+      <h2>Sort</h2>
+
+      <select
+        value={sortBy}
+        onChange={(e) =>
+          setSortBy(e.target.value)
+        }
+      >
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="budget">Budget</option>
+        <option value="status">Status</option>
+      </select>
+
+      <hr />
+
       <h3>
         Showing: {activeFilterLabel} Tasks
       </h3>
 
-      {filteredTasks.length === 0 ? (
+      {displayTasks.length === 0 ? (
         <p>
           {filter === "all"
             ? "You haven't created any tasks yet."
@@ -249,7 +387,7 @@ function CompanyDashboard() {
         </p>
       ) : (
 
-        filteredTasks.map(
+        displayTasks.map(
           (task) => {
 
             const daysLeft =
@@ -292,9 +430,11 @@ function CompanyDashboard() {
                 <p>
                   Deadline:
                   {
-                    daysLeft < 0
-                      ? " Overdue"
-                      : ` ${daysLeft} days left`
+                    daysLeft === null
+                      ? " Not started"
+                      : daysLeft < 0
+                        ? " Overdue"
+                        : ` ${daysLeft} days left`
                   }
                 </p>
 
@@ -308,6 +448,20 @@ function CompanyDashboard() {
                     <Link to={`/task-applicants/${task._id}`}>
                       View Applicants
                     </Link>
+
+                    {" | "}
+
+                    <button
+                      onClick={() =>
+                        handleDelete(task._id)
+                      }
+                      disabled={deletingId === task._id}
+                    >
+                      {deletingId === task._id
+                        ? "Deleting..."
+                        : "Delete"
+                      }
+                    </button>
                   </>
                 )}
 

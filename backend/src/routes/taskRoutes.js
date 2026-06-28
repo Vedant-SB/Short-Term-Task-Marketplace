@@ -2,7 +2,18 @@ const express = require("express");
 
 const router = express.Router();
 
-const { createTask,getAllTasks,getTaskById,getMyTasks,updateTask,deleteTask,submitWork,markTaskComplete,requestChanges } = require("../controllers/taskController");
+const {
+    createTask,
+    getAllTasks,
+    getTaskById,
+    getMyTasks,
+    updateTask,
+    deleteTask,
+    submitWork,
+    markTaskComplete,
+    requestChanges,
+    extendTaskDeadline
+} = require("../controllers/taskController");
 
 const authMiddleware = require("../middleware/authMiddleware");
 const optionalAuth = require("../middleware/optionalAuth");
@@ -12,6 +23,7 @@ router.post("/", authMiddleware, allowRoles("company"), createTask);
 router.get("/", getAllTasks);
 router.put("/:id/complete", authMiddleware, allowRoles("company"), markTaskComplete);
 router.put("/:id/request-changes", authMiddleware, allowRoles("company"), requestChanges);
+router.put("/:id/extend-deadline", authMiddleware, allowRoles("company"), extendTaskDeadline);
 router.get("/my-tasks", authMiddleware, allowRoles("company"), getMyTasks);
 router.put("/:id/submit", authMiddleware, allowRoles("individual"), submitWork);
 router.get("/:id", optionalAuth, getTaskById);

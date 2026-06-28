@@ -5,39 +5,60 @@ const {
     buildReviewStatus,
     getUserReviewSummary
 } = require("../utils/reviewHelpers");
+const {
+    closeExpiredApplicationTasks
+} = require("../utils/taskWorkflowHelpers");
 
 const getCompanyDashboard = async (req, res) => {
     try {
 
+        await closeExpiredApplicationTasks();
+
         const companyId = req.user.userId;
 
-        const tasksPosted = await Task.countDocuments({
-            postedBy: companyId
-        });
-
-        const completedTasks = await Task.countDocuments({
-            postedBy: companyId,
-            status: "completed"
-        });
-
-        const openTasks = await Task.countDocuments({
-            postedBy: companyId,
-            status: "open"
-        });
-
-        const inProgressTasks = await Task.countDocuments({
-            postedBy: companyId,
-            status: "in_progress"
-        });
-
-        const revisionRequestedTasks = await Task.countDocuments({
-            postedBy: companyId,
-            status: "revision_requested"
-        });
-
-        const companyTasks = await Task.find({
-            postedBy: companyId
-        }).select("_id status");
+        const [
+            tasksPosted,
+            completedTasks,
+            openTasks,
+            inProgressTasks,
+            revisionRequestedTasks,
+            underReviewTasks,
+            individualsHired,
+            companyTasks,
+            companyReviewSummary
+        ] = await Promise.all([
+            Task.countDocuments({
+                postedBy: companyId
+            }),
+            Task.countDocuments({
+                postedBy: companyId,
+                status: "completed"
+            }),
+            Task.countDocuments({
+                postedBy: companyId,
+                status: "open"
+            }),
+            Task.countDocuments({
+                postedBy: companyId,
+                status: "in_progress"
+            }),
+            Task.countDocuments({
+                postedBy: companyId,
+                status: "revision_requested"
+            }),
+            Task.countDocuments({
+                postedBy: companyId,
+                status: "under_review"
+            }),
+            Task.countDocuments({
+                postedBy: companyId,
+                selectedApplicant: { $ne: null }
+            }),
+            Task.find({
+                postedBy: companyId
+            }).select("_id status"),
+            getUserReviewSummary(companyId)
+        ]);
 
         const taskIds = companyTasks.map(
             task => task._id
@@ -71,10 +92,11 @@ const getCompanyDashboard = async (req, res) => {
                     !status.companyReviewSubmitted;
             }).length;
 
-        const applicationsReceived =
-            await Application.countDocuments({
+        const applicationsReceived = taskIds.length > 0
+            ? await Application.countDocuments({
                 taskId: { $in: taskIds }
-            });
+            })
+            : 0;
 
         res.status(200).json({
             success: true,
@@ -83,8 +105,12 @@ const getCompanyDashboard = async (req, res) => {
                 completedTasks,
                 openTasks,
                 inProgressTasks,
+                underReviewTasks,
                 revisionRequestedTasks,
                 applicationsReceived,
+                individualsHired,
+                averageRating:
+                    companyReviewSummary.averageRating,
                 pendingReviews,
                 completedReviews
             }
@@ -105,33 +131,39 @@ const getCompanyDashboard = async (req, res) => {
 const getIndividualDashboard = async (req, res) => {
     try {
 
+        await closeExpiredApplicationTasks();
+
         const userId = req.user.userId;
 
-        const applicationsSent =
-            await Application.countDocuments({
+        const [
+            applicationsSent,
+            acceptedApplications,
+            completedTasks,
+            reviewSummary,
+            completedTaskIds,
+            pendingApplications
+        ] = await Promise.all([
+            Application.countDocuments({
                 applicantId: userId
-            });
-
-        const acceptedApplications =
-            await Application.countDocuments({
+            }),
+            Application.countDocuments({
                 applicantId: userId,
                 status: "accepted"
-            });
-
-        const completedTasks =
-            await Task.countDocuments({
+            }),
+            Task.countDocuments({
                 selectedApplicant: userId,
                 status: "completed"
-            });
-
-        const reviewSummary =
-            await getUserReviewSummary(userId);
-
-        const completedTaskIds =
-            await Task.find({
+            }),
+            getUserReviewSummary(userId),
+            Task.find({
                 selectedApplicant: userId,
                 status: "completed"
-            }).select("_id");
+            }).select("_id"),
+            Application.countDocuments({
+                applicantId: userId,
+                status: "pending"
+            })
+        ]);
 
         const reviewMap =
             await getTaskReviewStatusMap(
@@ -167,8 +199,10 @@ const getIndividualDashboard = async (req, res) => {
             success: true,
             dashboard: {
                 applicationsSent,
+                pendingApplications,
                 acceptedApplications,
                 completedTasks,
+                portfolioProjects: completedTasks,
                 averageRating:
                     reviewSummary.averageRating,
                 reviewCount:

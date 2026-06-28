@@ -4,6 +4,12 @@ const {
     getTaskReviewStatusMap,
     buildReviewStatus
 } = require("../utils/reviewHelpers");
+const {
+    parseApplicationDeadline,
+    closeExpiredApplicationTasks,
+    computeTaskDeadline,
+    addDays
+} = require("../utils/taskWorkflowHelpers");
 
 const createTask = async (req, res) => {
     try {
@@ -16,8 +22,26 @@ const createTask = async (req, res) => {
             budget,
             duration,
             deliverables,
-            eligibleFor
+            eligibleFor,
+            applicationDeadline
         } = req.body;
+
+        const parsedApplicationDeadline =
+            parseApplicationDeadline(applicationDeadline);
+
+        if (!parsedApplicationDeadline) {
+            return res.status(400).json({
+                success: false,
+                message: "Valid application deadline is required"
+            });
+        }
+
+        if (parsedApplicationDeadline <= new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: "Application deadline must be in the future"
+            });
+        }
 
         const task = await Task.create({
             title,
@@ -28,7 +52,7 @@ const createTask = async (req, res) => {
             duration,
             deliverables,
             eligibleFor,
-
+            applicationDeadline: parsedApplicationDeadline,
             postedBy: req.user.userId
         });
 
@@ -48,10 +72,10 @@ const createTask = async (req, res) => {
     }
 };
 
-
-
 const getAllTasks = async (req, res) => {
     try {
+
+        await closeExpiredApplicationTasks();
 
         const {
             category,
@@ -62,7 +86,8 @@ const getAllTasks = async (req, res) => {
         } = req.query;
 
         const filter = {
-            status: "open"
+            status: "open",
+            applicationDeadline: { $gte: new Date() }
         };
 
         if (category) {
@@ -95,7 +120,10 @@ const getAllTasks = async (req, res) => {
         }
 
         const tasks = await Task.find(filter)
-            .populate("postedBy", "companyName");
+            .populate("postedBy", "companyName")
+            .sort({
+                createdAt: -1
+            });
 
         res.status(200).json({
             success: true,
@@ -113,10 +141,19 @@ const getAllTasks = async (req, res) => {
     }
 };
 
-
-
 const getTaskById = async (req, res) => {
     try {
+
+        await Task.updateOne(
+            {
+                _id: req.params.id,
+                status: "open",
+                applicationDeadline: { $lt: new Date() }
+            },
+            {
+                $set: { status: "closed" }
+            }
+        );
 
         const task = await Task.findById(req.params.id)
             .populate("postedBy", "companyName")
@@ -132,39 +169,60 @@ const getTaskById = async (req, res) => {
             });
         }
 
-        let hasApplied = false;
+        const isIndividual =
+            req.user && req.user.role === "individual";
 
-        if (
+        const isTaskOwner =
             req.user &&
-            req.user.role === "individual"
-        ) {
+            req.user.role === "company" &&
+            task.postedBy._id.toString() === req.user.userId;
 
-            const existingApplication =
-                await Application.findOne({
+        const [
+            existingApplication,
+            applicationCount,
+            reviewMap
+        ] = await Promise.all([
+            isIndividual
+                ? Application.findOne({
                     taskId: task._id,
-                    applicantId:
-                        req.user.userId
-                });
+                    applicantId: req.user.userId
+                })
+                : Promise.resolve(null),
+            isTaskOwner
+                ? Application.countDocuments({
+                    taskId: task._id,
+                    status: { $ne: "withdrawn" }
+                })
+                : Promise.resolve(0),
+            getTaskReviewStatusMap([task._id])
+        ]);
 
+        let hasApplied = false;
+        let applicationId = null;
+        let applicationStatus = null;
+
+        if (existingApplication) {
             hasApplied =
-                !!existingApplication;
+                existingApplication.status !== "withdrawn";
+            applicationId = existingApplication._id;
+            applicationStatus = existingApplication.status;
         }
 
         const reviewStatus =
             buildReviewStatus(
-                (await getTaskReviewStatusMap([
-                    task._id
-                ])).get(task._id.toString()) || []
+                reviewMap.get(task._id.toString()) || []
             );
 
         const taskData = task.toObject();
-
         taskData.reviewStatus = reviewStatus;
 
         res.status(200).json({
             success: true,
             task: taskData,
-            hasApplied
+            hasApplied,
+            applicationId,
+            applicationStatus,
+            applicationCount
         });
 
     } catch (error) {
@@ -177,10 +235,19 @@ const getTaskById = async (req, res) => {
     }
 };
 
-
-
 const getMyTasks = async (req, res) => {
     try {
+
+        await Task.updateMany(
+            {
+                postedBy: req.user.userId,
+                status: "open",
+                applicationDeadline: { $lt: new Date() }
+            },
+            {
+                $set: { status: "closed" }
+            }
+        );
 
         const tasks = await Task.find({
             postedBy: req.user.userId
@@ -188,7 +255,10 @@ const getMyTasks = async (req, res) => {
             .populate(
                 "selectedApplicant",
                 "name individualType"
-            );
+            )
+            .sort({
+                createdAt: -1
+            });
 
         const reviewMap =
             await getTaskReviewStatusMap(
@@ -223,8 +293,6 @@ const getMyTasks = async (req, res) => {
     }
 };
 
-
-
 const updateTask = async (req, res) => {
     try {
 
@@ -244,6 +312,47 @@ const updateTask = async (req, res) => {
             });
         }
 
+        if (task.status !== "open") {
+            return res.status(400).json({
+                success: false,
+                message: "Can only edit open tasks"
+            });
+        }
+
+        const applicationCount =
+            await Application.countDocuments({
+                taskId: task._id,
+                status: { $ne: "withdrawn" }
+            });
+
+        if (applicationCount > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot edit task with existing applications"
+            });
+        }
+
+        let parsedApplicationDeadline;
+
+        if (req.body.applicationDeadline !== undefined) {
+            parsedApplicationDeadline =
+                parseApplicationDeadline(req.body.applicationDeadline);
+
+            if (!parsedApplicationDeadline) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Valid application deadline is required"
+                });
+            }
+
+            if (parsedApplicationDeadline <= new Date()) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Application deadline must be in the future"
+                });
+            }
+        }
+
         const allowedUpdates = {
             title: req.body.title,
             description: req.body.description,
@@ -252,7 +361,8 @@ const updateTask = async (req, res) => {
             budget: req.body.budget,
             duration: req.body.duration,
             deliverables: req.body.deliverables,
-            eligibleFor: req.body.eligibleFor
+            eligibleFor: req.body.eligibleFor,
+            applicationDeadline: parsedApplicationDeadline
         };
 
         Object.keys(allowedUpdates).forEach(key => {
@@ -286,8 +396,6 @@ const updateTask = async (req, res) => {
     }
 };
 
-
-
 const deleteTask = async (req, res) => {
     try {
 
@@ -307,6 +415,30 @@ const deleteTask = async (req, res) => {
             });
         }
 
+        if (task.status !== "open") {
+            return res.status(400).json({
+                success: false,
+                message: "Can only delete open tasks"
+            });
+        }
+
+        const applicationCount =
+            await Application.countDocuments({
+                taskId: task._id,
+                status: { $ne: "withdrawn" }
+            });
+
+        if (applicationCount > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot delete task with existing applications"
+            });
+        }
+
+        await Application.deleteMany({
+            taskId: task._id
+        });
+
         await task.deleteOne();
 
         res.status(200).json({
@@ -323,8 +455,6 @@ const deleteTask = async (req, res) => {
 
     }
 };
-
-
 
 const submitWork = async (req, res) => {
     try {
@@ -371,7 +501,6 @@ const submitWork = async (req, res) => {
         task.submissionNote = submissionNote;
         task.submittedAt = new Date();
 
-        // Clear revision fields on resubmission
         task.revisionReason = "";
         task.revisionExpectedChanges = "";
         task.revisionRequestedAt = undefined;
@@ -393,8 +522,6 @@ const submitWork = async (req, res) => {
         });
     }
 };
-
-
 
 const markTaskComplete = async (req, res) => {
     try {
@@ -439,8 +566,6 @@ const markTaskComplete = async (req, res) => {
         });
     }
 };
-
-
 
 const requestChanges = async (req, res) => {
     try {
@@ -498,6 +623,82 @@ const requestChanges = async (req, res) => {
     }
 };
 
+const extendTaskDeadline = async (req, res) => {
+    try {
+
+        const { days } = req.body;
+        const normalizedDays = Number(days);
+
+        if (!Number.isInteger(normalizedDays) || normalizedDays < 1) {
+            return res.status(400).json({
+                success: false,
+                message: "Extension days must be a positive integer"
+            });
+        }
+
+        const task = await Task.findById(req.params.id);
+
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                message: "Task not found"
+            });
+        }
+
+        if (task.postedBy.toString() !== req.user.userId) {
+            return res.status(403).json({
+                success: false,
+                message: "Not authorized"
+            });
+        }
+
+        const extendableStatuses = [
+            "in_progress",
+            "revision_requested",
+            "under_review"
+        ];
+
+        if (!extendableStatuses.includes(task.status)) {
+            return res.status(400).json({
+                success: false,
+                message: "Deadline can only be extended while task is active"
+            });
+        }
+
+        if (!task.taskDeadline) {
+            return res.status(400).json({
+                success: false,
+                message: "Task deadline is not set"
+            });
+        }
+
+        const previousDeadline = new Date(task.taskDeadline);
+        const newDeadline = addDays(previousDeadline, normalizedDays);
+
+        task.taskDeadline = newDeadline;
+        task.deadlineExtensions.push({
+            days: normalizedDays,
+            previousDeadline,
+            newDeadline,
+            extendedBy: req.user.userId
+        });
+
+        await task.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Task deadline extended successfully",
+            task
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     createTask,
     getAllTasks,
@@ -507,5 +708,6 @@ module.exports = {
     deleteTask,
     submitWork,
     markTaskComplete,
-    requestChanges
+    requestChanges,
+    extendTaskDeadline
 };

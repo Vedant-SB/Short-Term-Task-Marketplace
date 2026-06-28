@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "../../api/axios";
 import {
   CATEGORIES,
@@ -7,9 +7,10 @@ import {
   ELIGIBLE_OPTIONS,
 } from "./taskFormConstants";
 
-function CreateTask() {
+function EditTask() {
 
   const navigate = useNavigate();
+  const { id } = useParams();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -23,9 +24,70 @@ function CreateTask() {
     deliverables: "",
   });
 
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+
+    const fetchTask = async () => {
+
+      try {
+
+        const response = await api.get(
+          `/tasks/${id}`
+        );
+
+        const task = response.data.task;
+
+        if (task.status !== "open") {
+          setError("Can only edit open tasks");
+          setLoading(false);
+          return;
+        }
+
+        if (response.data.applicationCount > 0) {
+          setError(
+            "Cannot edit task with existing applications"
+          );
+          setLoading(false);
+          return;
+        }
+
+        setFormData({
+          title: task.title || "",
+          description: task.description || "",
+          category: task.category || "",
+          skillsRequired:
+            (task.skillsRequired || []).join(", "),
+          eligibleFor: task.eligibleFor || [],
+          budget: task.budget || "",
+          duration: task.duration || "",
+          applicationDeadline: task.applicationDeadline
+            ? new Date(task.applicationDeadline).toISOString().split("T")[0]
+            : "",
+          deliverables: task.deliverables || "",
+        });
+
+      } catch (err) {
+
+        setError(
+          err.response?.data?.message ||
+          "Failed to load task"
+        );
+
+      } finally {
+
+        setLoading(false);
+
+      }
+
+    };
+
+    fetchTask();
+
+  }, [id]);
 
   const handleChange = (e) => {
     setFormData({
@@ -79,8 +141,8 @@ function CreateTask() {
         applicationDeadline: formData.applicationDeadline,
       };
 
-      const response = await api.post(
-        "/tasks",
+      const response = await api.put(
+        `/tasks/${id}`,
         payload
       );
 
@@ -89,14 +151,14 @@ function CreateTask() {
       );
 
       setTimeout(() => {
-        navigate("/company-dashboard");
+        navigate(`/tasks/${id}`);
       }, 1500);
 
     } catch (err) {
 
       setError(
         err.response?.data?.message ||
-        "Failed to create task"
+        "Failed to update task"
       );
 
     } finally {
@@ -107,11 +169,24 @@ function CreateTask() {
 
   };
 
+  if (loading) {
+    return <h2>Loading...</h2>;
+  }
+
+  if (error && !formData.title) {
+    return (
+      <div>
+        <h1>Edit Task</h1>
+        <p style={{ color: "red" }}>{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div>
 
       <h1>
-        Create Task
+        Edit Task
       </h1>
 
       {message && (
@@ -339,8 +414,8 @@ function CreateTask() {
           disabled={submitting}
         >
           {submitting
-            ? "Creating..."
-            : "Create Task"
+            ? "Saving..."
+            : "Save Changes"
           }
         </button>
 
@@ -350,4 +425,4 @@ function CreateTask() {
   );
 }
 
-export default CreateTask;
+export default EditTask;

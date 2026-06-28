@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import api from "../../api/axios";
 
 function TaskApplicants() {
@@ -123,7 +123,7 @@ function TaskApplicants() {
               </h3>
 
               <p>
-                Type:
+                Type:{" "}
                 {
                   application
                     .applicantId
@@ -132,7 +132,7 @@ function TaskApplicants() {
               </p>
 
               <p>
-                Skills:
+                Skills:{" "}
                 {
                   application
                     .applicantId
@@ -141,27 +141,63 @@ function TaskApplicants() {
               </p>
 
               <p>
-                Status:
+                Average Rating:{" "}
+                {
+                  application
+                    .applicantId
+                    ?.averageRating || 0
+                }
+              </p>
+
+              <p>
+                Total Reviews:{" "}
+                {
+                  application
+                    .applicantId
+                    ?.totalReviews || 0
+                }
+              </p>
+
+              <p>
+                Completed Projects:{" "}
+                {
+                  application
+                    .applicantId
+                    ?.completedProjects || 0
+                }
+              </p>
+
+              <p>
+                Status:{" "}
                 {
                   application.status
                 }
               </p>
 
+              <Link
+                to={`/profile/${application.applicantId?._id}`}
+              >
+                View Profile
+              </Link>
+
               {application.status === "pending" && (
 
-                <button
-                  onClick={() =>
-                    handleAccept(
-                      application._id
-                    )
-                  }
-                  disabled={acceptingId === application._id}
-                >
-                  {acceptingId === application._id
-                    ? "Accepting..."
-                    : "Accept Applicant"
-                  }
-                </button>
+                <>
+                  {" | "}
+                  <button
+                    onClick={() =>
+                      handleAccept(
+                        application._id
+                      )
+                    }
+                    disabled={acceptingId === application._id}
+                  >
+                    {acceptingId === application._id
+                      ? "Accepting..."
+                      : "Accept Applicant"
+                    }
+                  </button>
+                </>
 
               )}
 

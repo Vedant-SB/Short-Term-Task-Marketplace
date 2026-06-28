@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const {
-    applyToTask, getApplicantsForTask, acceptApplication, getMyApplications
+    applyToTask, getApplicantsForTask, acceptApplication, getMyApplications, withdrawApplication
 } = require("../controllers/applicationController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -13,5 +13,6 @@ router.post("/", authMiddleware, allowRoles("individual"), applyToTask);
 router.get("/my-applications", authMiddleware, allowRoles("individual"), getMyApplications);
 router.get("/task/:taskId", authMiddleware, allowRoles("company"), getApplicantsForTask);
 router.put("/:id/accept", authMiddleware, allowRoles("company"), acceptApplication);
+router.put("/:id/withdraw", authMiddleware, allowRoles("individual"), withdrawApplication);
 
 module.exports = router;

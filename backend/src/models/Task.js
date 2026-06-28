@@ -60,6 +60,16 @@ const taskSchema = new mongoose.Schema(
             required: true
         },
 
+        applicationDeadline: {
+            type: Date,
+            required: true
+        },
+
+        applicationDeadline: {
+            type: Date,
+            required: true
+        },
+
         deliverables: {
             type: String,
             required: true
@@ -89,6 +99,69 @@ const taskSchema = new mongoose.Schema(
             ref: "User",
             default: null
         },
+
+        taskStartDate: {
+            type: Date,
+            default: null
+        },
+
+        originalDeadline: {
+            type: Date,
+            default: null
+        },
+
+        currentDeadline: {
+            type: Date,
+            default: null
+        },
+
+        deadlineExtensions: [
+            {
+                days: Number,
+
+                reason: String,
+
+                extendedAt: {
+                    type: Date,
+                    default: Date.now
+                }
+            }
+        ],
+
+        taskStartDate: {
+            type: Date
+        },
+
+        taskDeadline: {
+            type: Date
+        },
+
+        deadlineExtensions: [
+            {
+                days: {
+                    type: Number,
+                    required: true,
+                    min: 1
+                },
+                previousDeadline: {
+                    type: Date,
+                    required: true
+                },
+                newDeadline: {
+                    type: Date,
+                    required: true
+                },
+                extendedAt: {
+                    type: Date,
+                    default: Date.now
+                },
+                extendedBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "User",
+                    required: true
+                }
+            }
+        ],
 
         submissionLink: {
             type: String,
@@ -125,8 +198,18 @@ const taskSchema = new mongoose.Schema(
 
 taskSchema.index({
     status: 1,
-    category : 1,
-    postedBy : 1
+    category: 1,
+    postedBy: 1
+});
+
+taskSchema.index({
+    status: 1,
+    applicationDeadline: 1
+});
+
+taskSchema.index({
+    status: 1,
+    taskDeadline: 1
 });
 
 module.exports = mongoose.model("Task", taskSchema);
