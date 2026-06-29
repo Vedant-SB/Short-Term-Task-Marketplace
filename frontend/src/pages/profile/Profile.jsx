@@ -101,12 +101,20 @@ function Profile() {
       {/* =============================== */}
 
       <p>
-        <strong>Status:</strong>{" "}
+        <strong>
+          {profile.role === "company"
+            ? "Company Status"
+            : "Status"}
+        </strong>{" "}
         {profileStatus}
       </p>
 
       <p>
-        <strong>Current Active Tasks:</strong>{" "}
+        <strong>
+          {profile.role === "company"
+            ? "Active Projects"
+            : "Current Active Tasks"}
+        </strong>{" "}
         {activeTaskCount}
       </p>
 
@@ -141,11 +149,11 @@ function Profile() {
 
           {profile.yearsOfExperience !== undefined &&
             profile.yearsOfExperience !== null && (
-            <p>
-              <strong>Experience:</strong>{" "}
-              {profile.yearsOfExperience} years
-            </p>
-          )}
+              <p>
+                <strong>Experience:</strong>{" "}
+                {profile.yearsOfExperience} years
+              </p>
+            )}
 
           {profile.primaryDomain && (
             <p>
@@ -192,18 +200,18 @@ function Profile() {
 
       {profile.skills &&
         profile.skills.length > 0 && (
-        <>
+          <>
 
-          <h2>Skills</h2>
+            <h2>Skills</h2>
 
-          <p>
-            {profile.skills.join(", ")}
-          </p>
+            <p>
+              {profile.skills.join(", ")}
+            </p>
 
-          <hr />
+            <hr />
 
-        </>
-      )}
+          </>
+        )}
 
       {/* =============================== */}
       {/* STATISTICS                       */}
@@ -221,25 +229,70 @@ function Profile() {
         {statistics.totalReviews || reviewSummary.reviewCount || 0}
       </p>
 
-      <p>
-        <strong>Completed Tasks:</strong>{" "}
-        {statistics.completedTasks || 0}
-      </p>
+      {profile.role === "individual" ? (
+        <>
 
-      <p>
-        <strong>Portfolio Projects:</strong>{" "}
-        {statistics.portfolioProjects || 0}
-      </p>
+          <p>
+            <strong>Completed Tasks:</strong>{" "}
+            {statistics.completedTasks || 0}
+          </p>
 
-      <p>
-        <strong>Applications Accepted:</strong>{" "}
-        {statistics.applicationsAccepted || 0}
-      </p>
+          <p>
+            <strong>Portfolio Projects:</strong>{" "}
+            {statistics.portfolioProjects || 0}
+          </p>
 
-      <p>
-        <strong>Applications Completed:</strong>{" "}
-        {statistics.applicationsCompleted || 0}
-      </p>
+          <p>
+            <strong>Applications Accepted:</strong>{" "}
+            {statistics.applicationsAccepted || 0}
+          </p>
+
+          <p>
+            <strong>Applications Completed:</strong>{" "}
+            {statistics.applicationsCompleted || 0}
+          </p>
+
+        </>
+      ) : (
+        <>
+
+          <p>
+            <strong>Tasks Posted:</strong>{" "}
+            {statistics.tasksPosted || 0}
+          </p>
+
+          <p>
+            <strong>Open Tasks:</strong>{" "}
+            {statistics.openTasks || 0}
+          </p>
+
+          <p>
+            <strong>Active Projects:</strong>{" "}
+            {statistics.activeProjects || 0}
+          </p>
+
+          <p>
+            <strong>Under Review:</strong>{" "}
+            {statistics.underReview || 0}
+          </p>
+
+          <p>
+            <strong>Revision Requested:</strong>{" "}
+            {statistics.revisionRequested || 0}
+          </p>
+
+          <p>
+            <strong>Completed Projects:</strong>{" "}
+            {statistics.completedProjects || 0}
+          </p>
+
+          <p>
+            <strong>Individuals Hired:</strong>{" "}
+            {statistics.individualsHired || 0}
+          </p>
+
+        </>
+      )}
 
       <hr />
 
@@ -265,7 +318,12 @@ function Profile() {
             >
 
               <p>
-                <strong>Company:</strong>{" "}
+                <strong>
+                  {profile.role === "company"
+                    ? "Individual"
+                    : "Company"}
+                  :
+                </strong>{" "}
                 {review.reviewer}
               </p>
 
@@ -298,62 +356,67 @@ function Profile() {
       {/* PORTFOLIO                        */}
       {/* =============================== */}
 
-      <h2>Portfolio</h2>
 
-      {portfolio.length === 0 ? (
-        <p>No completed projects yet.</p>
-      ) : (
-        portfolio.map(
-          (project) => (
 
-            <div
-              key={project.taskId}
-              style={{
-                border: "1px solid black",
-                marginBottom: "10px",
-                padding: "10px",
-              }}
-            >
+      {profile.role === "individual" && (
+        <>
+          <h2>Portfolio</h2>
+          {portfolio.length === 0 ? (
+            <p>No completed projects yet.</p>
+          ) : (
+            portfolio.map(
+              (project) => (
 
-              <h3>
-                {project.title}
-              </h3>
+                <div
+                  key={project.taskId}
+                  style={{
+                    border: "1px solid black",
+                    marginBottom: "10px",
+                    padding: "10px",
+                  }}
+                >
 
-              <p>
-                <strong>Category:</strong>{" "}
-                {project.category}
-              </p>
+                  <h3>
+                    {project.title}
+                  </h3>
 
-              <p>
-                <strong>Skills Used:</strong>{" "}
-                {project.skillsUsed?.join(", ")}
-              </p>
+                  <p>
+                    <strong>Category:</strong>{" "}
+                    {project.category}
+                  </p>
 
-              <p>
-                <strong>Completion Date:</strong>{" "}
-                {new Date(
-                  project.completedOn
-                ).toLocaleDateString()}
-              </p>
+                  <p>
+                    <strong>Skills Used:</strong>{" "}
+                    {project.skillsUsed?.join(", ")}
+                  </p>
 
-              {project.companyRating && (
-                <p>
-                  <strong>Company Rating:</strong>{" "}
-                  {project.companyRating}
-                </p>
-              )}
+                  <p>
+                    <strong>Completion Date:</strong>{" "}
+                    {new Date(
+                      project.completedOn
+                    ).toLocaleDateString()}
+                  </p>
 
-              {project.companyReview && (
-                <p>
-                  <strong>Company Review:</strong>{" "}
-                  {project.companyReview}
-                </p>
-              )}
+                  {project.companyRating && (
+                    <p>
+                      <strong>Company Rating:</strong>{" "}
+                      {project.companyRating}
+                    </p>
+                  )}
 
-            </div>
+                  {project.companyReview && (
+                    <p>
+                      <strong>Company Review:</strong>{" "}
+                      {project.companyReview}
+                    </p>
+                  )}
 
-          )
-        )
+                </div>
+
+              )
+            )
+          )}
+        </>
       )}
 
     </div>

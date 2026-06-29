@@ -50,7 +50,7 @@ const getPublicProfile = async (req, res) => {
                             "You can only view profiles of applicants who applied to your tasks"
                     });
 
-                } 
+                }
 
             }
 
@@ -70,107 +70,242 @@ const getPublicProfile = async (req, res) => {
             });
         }
 
-        
-
-        const reviewSummaryPromise =
-            getUserReviewSummary(userId);
-
-        const [
-            reviewSummary,
-            completedTasks,
-            applicationsAccepted,
-            activeTasks,
-            completedTasksData
-        ] = await Promise.all([
-            reviewSummaryPromise,
-            Task.countDocuments({
-                selectedApplicant: userId,
-                status: "completed"
-            }),
-            Application.countDocuments({
-                applicantId: userId,
-                status: "accepted"
-            }),
-            Task.find({
-                selectedApplicant: userId,
-                status: {
-                    $in: [
-                        "in_progress",
-                        "under_review",
-                        "revision_requested"
-                    ]
-                }
-            }).select("status"),
-            Task.find({
-                selectedApplicant: userId,
-                status: "completed"
-            })
-                .populate("postedBy", "companyName")
-                .sort({ updatedAt: -1 })
-        ]);
-
-        const applicationsCompleted =
-            completedTasks;
-
-        const statistics = {
-            averageRating: reviewSummary.averageRating,
-            totalReviews: reviewSummary.reviewCount,
-            completedTasks,
-            portfolioProjects: completedTasks,
-            applicationsAccepted,
-            applicationsCompleted
-        };
-
         // =========================
-        // PROFILE STATUS
+        // REVIEW SUMMARY
         // =========================
 
-        let profileStatus = "Available";
+        const reviewSummary =
+            await getUserReviewSummary(userId);
 
-        if (activeTasks.some(
-            t => t.status === "revision_requested"
-        )) {
-            profileStatus = "Revision Requested";
-        } else if (activeTasks.length > 0) {
-            profileStatus = "Working";
+        let statistics = {};
+        let profileStatus = "";
+        let activeTaskCount = 0;
+        let portfolio = [];
+
+        // =====================================================
+        // INDIVIDUAL PROFILE
+        // =====================================================
+
+        if (user.role === "individual") {
+
+            const [
+                completedTasks,
+                applicationsAccepted,
+                activeTasks,
+                completedTasksData
+            ] = await Promise.all([
+
+                Task.countDocuments({
+                    selectedApplicant: userId,
+                    status: "completed"
+                }),
+
+                Application.countDocuments({
+                    applicantId: userId,
+                    status: "accepted"
+                }),
+
+                Task.find({
+                    selectedApplicant: userId,
+                    status: {
+                        $in: [
+                            "in_progress",
+                            "under_review",
+                            "revision_requested"
+                        ]
+                    }
+                }).select("status"),
+
+                Task.find({
+                    selectedApplicant: userId,
+                    status: "completed"
+                })
+                    .populate("postedBy", "companyName")
+                    .sort({ updatedAt: -1 })
+
+            ]);
+
+            statistics = {
+                averageRating: reviewSummary.averageRating,
+                totalReviews: reviewSummary.reviewCount,
+                completedTasks,
+                portfolioProjects: completedTasks,
+                applicationsAccepted,
+                applicationsCompleted: completedTasks
+            };
+
+            profileStatus = "Available";
+
+            if (
+                activeTasks.some(
+                    task => task.status === "revision_requested"
+                )
+            ) {
+                profileStatus = "Revision Requested";
+            }
+            else if (activeTasks.length > 0) {
+                profileStatus = "Working";
+            }
+
+            activeTaskCount = activeTasks.length;
+
+            const completedTaskIds =
+                completedTasksData.map(task => task._id);
+
+            const companyReviews =
+                completedTaskIds.length > 0
+                    ? await Review.find({
+                        task: {
+                            $in: completedTaskIds
+                        },
+                        reviewee: userId,
+                        reviewType: "company_to_individual"
+                    }).select(
+                        "task rating comment"
+                    )
+                    : [];
+
+            const reviewByTaskId =
+                new Map(
+                    companyReviews.map(review => [
+                        review.task.toString(),
+                        review
+                    ])
+                );
+
+            portfolio = completedTasksData.map(task => {
+
+                const review =
+                    reviewByTaskId.get(
+                        task._id.toString()
+                    );
+
+                return {
+
+                    taskId: task._id,
+
+                    title: task.title,
+
+                    category: task.category,
+
+                    skillsUsed: task.skillsRequired,
+
+                    completedOn: task.updatedAt,
+
+                    companyRating:
+                        review?.rating || null,
+
+                    companyReview:
+                        review?.comment || null
+
+                };
+
+            });
+
         }
 
-        const activeTaskCount = activeTasks.length;
+        // =====================================================
+        // COMPANY PROFILE
+        // =====================================================
 
-        // =========================
-        // PORTFOLIO
-        // =========================
+        else {
 
-        const completedTaskIds = completedTasksData.map(task => task._id);
+            const [
 
-        const companyReviews = completedTaskIds.length > 0
-            ? await Review.find({
-                task: { $in: completedTaskIds },
-                reviewee: userId,
-                reviewType: "company_to_individual"
-            }).select("task rating comment")
-            : [];
+                tasksPosted,
 
-        const reviewByTaskId = new Map(
-            companyReviews.map(review => [
-                review.task.toString(),
-                review
-            ])
-        );
+                openTasks,
 
-        const portfolio = completedTasksData.map((task) => {
-            const review = reviewByTaskId.get(task._id.toString());
+                activeProjects,
 
-            return {
-                taskId: task._id,
-                title: task.title,
-                category: task.category,
-                skillsUsed: task.skillsRequired,
-                completedOn: task.updatedAt,
-                companyRating: review?.rating || null,
-                companyReview: review?.comment || null
+                underReview,
+
+                revisionRequested,
+
+                completedProjects,
+
+                hiredIndividuals
+
+            ] = await Promise.all([
+
+                Task.countDocuments({
+                    postedBy: userId
+                }),
+
+                Task.countDocuments({
+                    postedBy: userId,
+                    status: "open"
+                }),
+
+                Task.countDocuments({
+                    postedBy: userId,
+                    status: "in_progress"
+                }),
+
+                Task.countDocuments({
+                    postedBy: userId,
+                    status: "under_review"
+                }),
+
+                Task.countDocuments({
+                    postedBy: userId,
+                    status: "revision_requested"
+                }),
+
+                Task.countDocuments({
+                    postedBy: userId,
+                    status: "completed"
+                }),
+
+                Task.distinct(
+                    "selectedApplicant",
+                    {
+                        postedBy: userId,
+                        selectedApplicant: {
+                            $ne: null
+                        }
+                    }
+                )
+
+            ]);
+
+            statistics = {
+
+                averageRating:
+                    reviewSummary.averageRating,
+
+                totalReviews:
+                    reviewSummary.reviewCount,
+
+                tasksPosted,
+
+                openTasks,
+
+                activeProjects,
+
+                underReview,
+
+                revisionRequested,
+
+                completedProjects,
+
+                individualsHired:
+                    hiredIndividuals.length
+
             };
-        });
+
+            profileStatus =
+                openTasks > 0
+                    ? "Hiring"
+                    : activeProjects > 0
+                        ? "Projects In Progress"
+                        : "Not Hiring";
+
+            activeTaskCount =
+                activeProjects;
+
+            portfolio = [];
+        }
 
         // =========================
         // RESPONSE
