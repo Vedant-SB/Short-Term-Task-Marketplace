@@ -12,7 +12,8 @@ const {
     submitWork,
     markTaskComplete,
     requestChanges,
-    extendTaskDeadline
+    extendApplicationDeadline,
+    extendSubmissionDeadline
 } = require("../controllers/taskController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -23,7 +24,8 @@ router.post("/", authMiddleware, allowRoles("company"), createTask);
 router.get("/", getAllTasks);
 router.put("/:id/complete", authMiddleware, allowRoles("company"), markTaskComplete);
 router.put("/:id/request-changes", authMiddleware, allowRoles("company"), requestChanges);
-router.put("/:id/extend-deadline", authMiddleware, allowRoles("company"), extendTaskDeadline);
+router.put("/:id/extend-application-deadline", authMiddleware, allowRoles("company"), extendApplicationDeadline);
+router.put("/:id/extend-submission-deadline", authMiddleware, allowRoles("company"), extendSubmissionDeadline);
 router.get("/my-tasks", authMiddleware, allowRoles("company"), getMyTasks);
 router.put("/:id/submit", authMiddleware, allowRoles("individual"), submitWork);
 router.get("/:id", optionalAuth, getTaskById);

@@ -204,17 +204,18 @@ function TaskDetails() {
 
   };
 
-  const handleExtendDeadline = async (
+  const handleExtendSubmissionDeadline = async (
     days
   ) => {
     if (extendingDeadline) return;
 
     setExtendingDeadline(true);
     setMessage("");
+    setCustomExtensionDays("");
 
     try {
       const response = await api.put(
-        `/tasks/${id}/extend-deadline`,
+        `/tasks/${id}/extend-submission-deadline`,
         { days }
       );
 
@@ -229,6 +230,38 @@ function TaskDetails() {
     } finally {
       setExtendingDeadline(false);
     }
+  };
+
+  const handleExtendApplicationDeadline = async (days) => {
+
+    if (extendingDeadline) return;
+
+    setExtendingDeadline(true);
+    setMessage("");
+
+    try {
+
+      const response = await api.put(
+        `/tasks/${id}/extend-application-deadline`,
+        { days }
+      );
+
+      setTask(response.data.task);
+      setMessage(response.data.message);
+
+    } catch (error) {
+
+      setMessage(
+        error.response?.data?.message ||
+        "Failed to extend application deadline"
+      );
+
+    } finally {
+
+      setExtendingDeadline(false);
+
+    }
+
   };
 
   // =========================================
@@ -267,18 +300,16 @@ function TaskDetails() {
       task?.status
     );
 
-  const getDaysLeft = () => {
+  const getDaysLeft = (deadline) => {
 
-    if (!task?.taskDeadline) {
+    if (!deadline) {
       return null;
     }
-
-    const deadline = new Date(task.taskDeadline);
 
     const today = new Date();
 
     return Math.ceil(
-      (deadline - today) /
+      (new Date(deadline) - today) /
       (1000 * 60 * 60 * 24)
     );
 
@@ -344,23 +375,35 @@ function TaskDetails() {
           : "Not started"}
       </p>
 
-      <p>
-        Task Deadline:{" "}
-        {task.taskDeadline
-          ? new Date(task.taskDeadline).toLocaleDateString()
-          : "Not started"}
-      </p>
-
-      {task.taskDeadline && (
+      {task.status !== "open" && (
         <p>
-          Days Left: {(() => {
-            const daysLeft = getDaysLeft();
-            if (daysLeft === null) return "N/A";
-            if (daysLeft < 0) return "Overdue";
-            return `${daysLeft} days left`;
-          })()}
+          Submission Deadline:{" "}
+          {task.currentDeadline
+            ? new Date(task.currentDeadline).toLocaleDateString()
+            : "Not Started"}
         </p>
       )}
+
+      <p>
+        Days Left:{" "}
+        {(() => {
+
+          const daysLeft = getDaysLeft(
+            task.status === "open"
+              ? task.applicationDeadline
+              : task.currentDeadline
+          );
+
+          if (daysLeft === null)
+            return "Not Started";
+
+          if (daysLeft < 0)
+            return "Overdue";
+
+          return `${daysLeft} days left`;
+
+        })()}
+      </p>
 
       <p>
         Category: {task.category}
@@ -368,10 +411,10 @@ function TaskDetails() {
 
       {task.skillsRequired &&
         task.skillsRequired.length > 0 && (
-        <p>
-          Skills: {task.skillsRequired.join(", ")}
-        </p>
-      )}
+          <p>
+            Skills: {task.skillsRequired.join(", ")}
+          </p>
+        )}
 
       <p>
         Deliverables: {task.deliverables}
@@ -379,13 +422,13 @@ function TaskDetails() {
 
       {task.eligibleFor &&
         task.eligibleFor.length > 0 && (
-        <p>
-          Eligible For:{" "}
-          {task.eligibleFor
-            .map((e) => ELIGIBLE_LABELS[e] || e)
-            .join(", ")}
-        </p>
-      )}
+          <p>
+            Eligible For:{" "}
+            {task.eligibleFor
+              .map((e) => ELIGIBLE_LABELS[e] || e)
+              .join(", ")}
+          </p>
+        )}
 
       <p>
         Status: {task.status === "revision_requested"
@@ -405,10 +448,10 @@ function TaskDetails() {
 
       {task.deadlineExtensions &&
         task.deadlineExtensions.length > 0 && (
-        <p>
-          Deadline Extensions: {task.deadlineExtensions.length}
-        </p>
-      )}
+          <p>
+            Deadline Extensions: {task.deadlineExtensions.length}
+          </p>
+        )}
 
       {/* =============================== */}
       {/* INDIVIDUAL USER                  */}
@@ -423,91 +466,99 @@ function TaskDetails() {
           {task.status === "open" &&
             !hasApplied && (
 
-            <button
-              onClick={handleApply}
-              disabled={applying}
-            >
-              {applying
-                ? "Applying..."
-                : "Apply To Task"
-              }
-            </button>
+              <button
+                onClick={handleApply}
+                disabled={
+                  applying ||
+                  new Date() >
+                  new Date(task.applicationDeadline)
+                }
+              >
+                {applying
+                  ? "Applying..."
+                  : new Date() >
+                    new Date(task.applicationDeadline)
+                    ? "Applications Closed"
+                    : "Apply To Task"
+                }
+              </button>
 
-          )}
+            )}
 
           {task.status === "open" &&
             hasApplied &&
             applicationStatus === "pending" && (
 
-            <>
-              <p>
-                <strong>Already Applied</strong>
-              </p>
+              <>
+                <p>
+                  <strong>Already Applied</strong>
+                </p>
 
-              <button
-                onClick={handleWithdraw}
-                disabled={withdrawing}
-              >
-                {withdrawing
-                  ? "Withdrawing..."
-                  : "Withdraw Application"
-                }
-              </button>
-            </>
+                <button
+                  onClick={handleWithdraw}
+                  disabled={withdrawing}
+                >
+                  {withdrawing
+                    ? "Withdrawing..."
+                    : "Withdraw Application"
+                  }
+                </button>
+              </>
 
-          )}
+            )}
 
           {task.status === "open" &&
             hasApplied &&
             applicationStatus !== "pending" && (
 
-            <p>
-              <strong>Already Applied</strong>
-            </p>
+              <p>
+                <strong>Already Applied</strong>
+              </p>
 
-          )}
+            )}
 
           {/* --- IN PROGRESS --- */}
 
           {task.status === "in_progress" &&
             isSelectedApplicant && (
 
-            <>
+              <>
 
-              <h3>
-                Assigned To You
-              </h3>
+                <h3>
+                  Assigned To You
+                </h3>
 
-              <p>
-                Deadline:{" "}
-                {(() => {
-                  const daysLeft = getDaysLeft();
-                  if (daysLeft === null) return "N/A";
-                  if (daysLeft < 0) return "Overdue";
-                  return `${daysLeft} days left`;
-                })()}
-              </p>
+                <p>
+                  Deadline:{" "}
+                  {(() => {
+                    const daysLeft =
+                      getDaysLeft(task.currentDeadline);
+                    if (daysLeft === null) return "N/A";
+                    if (daysLeft < 0) return "Overdue";
+                    return `${daysLeft} days left`;
+                  })()}
+                </p>
 
-              <br />
+                <br />
 
-              <Link
-                to={`/tasks/${task._id}/submit`}
-              >
-                Submit Work
-              </Link>
+                <Link
+                  to={`/tasks/${task._id}/submit`}
+                >
+                  Submit Work
+                </Link>
 
-            </>
+              </>
 
-          )}
+            )}
 
           {task.status === "in_progress" &&
             !isSelectedApplicant && (
 
-            <p>
-              Task In Progress
-            </p>
+              <p>
+                Task In Progress
+              </p>
 
-          )}
+            )}
 
           {/* --- UNDER REVIEW --- */}
 
@@ -532,42 +583,42 @@ function TaskDetails() {
           {task.status === "revision_requested" &&
             isSelectedApplicant && (
 
-            <>
+              <>
 
-              <h3>
-                Revision Requested
-              </h3>
+                <h3>
+                  Revision Requested
+                </h3>
 
-              <p>
-                <strong>Reason:</strong>{" "}
-                {task.revisionReason}
-              </p>
+                <p>
+                  <strong>Reason:</strong>{" "}
+                  {task.revisionReason}
+                </p>
 
-              <p>
-                <strong>Expected Changes:</strong>{" "}
-                {task.revisionExpectedChanges}
-              </p>
+                <p>
+                  <strong>Expected Changes:</strong>{" "}
+                  {task.revisionExpectedChanges}
+                </p>
 
-              <br />
+                <br />
 
-              <Link
-                to={`/tasks/${task._id}/submit`}
-              >
-                Resubmit Work
-              </Link>
+                <Link
+                  to={`/tasks/${task._id}/submit`}
+                >
+                  Resubmit Work
+                </Link>
 
-            </>
+              </>
 
-          )}
+            )}
 
           {task.status === "revision_requested" &&
             !isSelectedApplicant && (
 
-            <p>
-              Revision Requested
-            </p>
+              <p>
+                Revision Requested
+              </p>
 
-          )}
+            )}
 
           {/* --- COMPLETED --- */}
 
@@ -582,50 +633,50 @@ function TaskDetails() {
           {task.status === "completed" &&
             isSelectedApplicant && (
 
-            <>
+              <>
 
-              {companyReviewSubmitted ? (
+                {companyReviewSubmitted ? (
 
-                <p>
-                  Company Review Submitted
-                </p>
-
-              ) : (
-
-                <p>
-                  Waiting for Company Review
-                </p>
-
-              )}
-
-              {companyReviewSubmitted &&
-                !individualReviewSubmitted && (
-
-                <>
                   <p>
-                    Pending Review
+                    Company Review Submitted
                   </p>
 
-                  <Link
-                    to={`/tasks/${task._id}/review`}
-                  >
-                    Review Company
-                  </Link>
-                </>
+                ) : (
 
-              )}
+                  <p>
+                    Waiting for Company Review
+                  </p>
 
-              {individualReviewSubmitted && (
+                )}
 
-                <p>
-                  Individual Review Submitted
-                </p>
+                {companyReviewSubmitted &&
+                  !individualReviewSubmitted && (
 
-              )}
+                    <>
+                      <p>
+                        Pending Review
+                      </p>
 
-            </>
+                      <Link
+                        to={`/tasks/${task._id}/review`}
+                      >
+                        Review Company
+                      </Link>
+                    </>
 
-          )}
+                  )}
+
+                {individualReviewSubmitted && (
+
+                  <p>
+                    Individual Review Submitted
+                  </p>
+
+                )}
+
+              </>
+
+            )}
 
         </>
 
@@ -668,39 +719,12 @@ function TaskDetails() {
 
           {canExtendDeadline && (
             <>
-              <h3>Extend Deadline</h3>
-
-              <button
-                onClick={() => handleExtendDeadline(1)}
-                disabled={extendingDeadline}
-              >
-                +1 day
-              </button>
-
-              {" "}
-
-              <button
-                onClick={() => handleExtendDeadline(2)}
-                disabled={extendingDeadline}
-              >
-                +2 days
-              </button>
-
-              {" "}
-
-              <button
-                onClick={() => handleExtendDeadline(3)}
-                disabled={extendingDeadline}
-              >
-                +3 days
-              </button>
-
-              {" "}
+              <h3>Extend Submission Deadline</h3>
 
               <input
                 type="number"
                 min="1"
-                placeholder="Custom days"
+                placeholder="Days"
                 value={customExtensionDays}
                 onChange={(e) =>
                   setCustomExtensionDays(e.target.value)
@@ -712,7 +736,9 @@ function TaskDetails() {
 
               <button
                 onClick={() =>
-                  handleExtendDeadline(Number(customExtensionDays))
+                  handleExtendSubmissionDeadline(
+                    Number(customExtensionDays)
+                  )
                 }
                 disabled={
                   extendingDeadline ||
@@ -720,7 +746,7 @@ function TaskDetails() {
                   Number(customExtensionDays) < 1
                 }
               >
-                Extend
+                Extend Submission Deadline
               </button>
               <hr />
             </>
@@ -730,11 +756,43 @@ function TaskDetails() {
 
           {task.status === "open" && (
 
-            <Link
-              to={`/task-applicants/${task._id}`}
-            >
-              View Applicants
-            </Link>
+            <>
+              <Link to={`/task-applicants/${task._id}`}>
+                View Applicants
+              </Link>
+
+              <hr />
+
+              <h3>Extend Application Deadline</h3>
+
+              <input
+                type="number"
+                min="1"
+                placeholder="Days"
+                value={customExtensionDays}
+                onChange={(e) =>
+                  setCustomExtensionDays(e.target.value)
+                }
+                disabled={extendingDeadline}
+              />
+
+              {" "}
+
+              <button
+                onClick={() =>
+                  handleExtendApplicationDeadline(
+                    Number(customExtensionDays)
+                  )
+                }
+                disabled={
+                  extendingDeadline ||
+                  !customExtensionDays ||
+                  Number(customExtensionDays) < 1
+                }
+              >
+                Extend Application Deadline
+              </button>
+            </>
 
           )}
 
@@ -743,33 +801,65 @@ function TaskDetails() {
           {task.status === "in_progress" &&
             task.selectedApplicant && (
 
-            <>
+              <>
 
-              <h3>
-                Selected Applicant
-              </h3>
+                <h3>
+                  Selected Applicant
+                </h3>
 
-              <p>
-                Name: {task.selectedApplicant.name}
-              </p>
+                <p>
+                  Name: {task.selectedApplicant.name}
+                </p>
 
-              <p>
-                Email: {task.selectedApplicant.email}
-              </p>
+                <p>
+                  Email: {task.selectedApplicant.email}
+                </p>
 
-              <p>
-                Type: {ELIGIBLE_LABELS[task.selectedApplicant.individualType] || task.selectedApplicant.individualType}
-              </p>
+                <p>
+                  Type: {ELIGIBLE_LABELS[task.selectedApplicant.individualType] || task.selectedApplicant.individualType}
+                </p>
 
-              <br />
+                <br />
 
-              <p>
-                Task currently in progress.
-              </p>
+                <p>
+                  Task currently in progress.
+                </p>
 
-            </>
+                {task.status !== "open" && (
+                  <p>
+                    Submission Deadline:{" "}
+                    {task.currentDeadline
+                      ? new Date(task.currentDeadline).toLocaleDateString()
+                      : "Not Started"}
+                  </p>
+                )}
 
-          )}
+                <p>
+                  Days Left:{" "}
+                  {(() => {
+
+                    const deadline =
+                      task.status === "open"
+                        ? task.applicationDeadline
+                        : task.currentDeadline;
+
+                    const daysLeft =
+                      getDaysLeft(deadline);
+
+                    if (daysLeft === null)
+                      return "Not Started";
+
+                    if (daysLeft < 0)
+                      return "Overdue";
+
+                    return `${daysLeft} days left`;
+
+                  })()}
+                </p>
+
+              </>
+
+            )}
 
           {/* --- UNDER REVIEW --- */}
 
@@ -811,6 +901,15 @@ function TaskDetails() {
                 ).toLocaleString()}
               </p>
 
+              {task.status !== "open" && (
+                <p>
+                  Submission Deadline:{" "}
+                  {task.currentDeadline
+                    ? new Date(task.currentDeadline).toLocaleDateString()
+                    : "Not Started"}
+                </p>
+              )}
+
               <br />
 
               <Link
@@ -847,6 +946,31 @@ function TaskDetails() {
 
               <p>
                 Waiting for resubmission.
+              </p>
+
+              <p>
+                Submission Deadline:{" "}
+                {task.currentDeadline
+                  ? new Date(task.currentDeadline).toLocaleDateString()
+                  : "Not Started"}
+              </p>
+
+              <p>
+                Days Left:{" "}
+                {(() => {
+
+                  const days =
+                    getDaysLeft(task.currentDeadline);
+
+                  if (days == null)
+                    return "Not Started";
+
+                  if (days < 0)
+                    return "Overdue";
+
+                  return `${days} days`;
+
+                })()}
               </p>
 
             </>

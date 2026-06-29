@@ -45,24 +45,20 @@ function CompanyDashboard() {
 
   }, []);
 
-  const getDaysLeft = (task) => {
+  const getDaysLeft = (deadline) => {
 
-    if (!task?.taskDeadline) {
+    if (!deadline) {
       return null;
     }
 
-    const deadline = new Date(task.taskDeadline);
-
     const today = new Date();
 
-    const diffTime =
-      deadline - today;
+    const diff =
+      new Date(deadline) - today;
 
-    const diffDays = Math.ceil(
-      diffTime / (1000 * 60 * 60 * 24)
+    return Math.ceil(
+      diff / (1000 * 60 * 60 * 24)
     );
-
-    return diffDays;
 
   };
 
@@ -390,8 +386,11 @@ function CompanyDashboard() {
         displayTasks.map(
           (task) => {
 
-            const daysLeft =
-              getDaysLeft(task);
+            const applicationDaysLeft =
+              getDaysLeft(task.applicationDeadline);
+
+            const submissionDaysLeft =
+              getDaysLeft(task.currentDeadline);
 
             return (
 
@@ -427,16 +426,52 @@ function CompanyDashboard() {
                   {task.duration} days
                 </p>
 
-                <p>
-                  Deadline:
-                  {
-                    daysLeft === null
-                      ? " Not started"
-                      : daysLeft < 0
-                        ? " Overdue"
-                        : ` ${daysLeft} days left`
-                  }
-                </p>
+
+                {task.status === "open" ? (
+
+                  <>
+                    <p>
+                      <strong>Application Deadline:</strong>{" "}
+                      {task.applicationDeadline
+                        ? new Date(task.applicationDeadline).toLocaleDateString()
+                        : "Not Set"}
+                    </p>
+
+                    <p>
+                      <strong>Days Left:</strong>{" "}
+                      {
+                        applicationDaysLeft < 0
+                          ? "Closed"
+                          : `${applicationDaysLeft} days`
+                      }
+                    </p>
+                  </>
+
+                ) : (
+
+                  <>
+                    <p>
+                      <strong>Submission Deadline:</strong>{" "}
+                      {task.currentDeadline
+                        ? new Date(
+                          task.currentDeadline
+                        ).toLocaleDateString()
+                        : "Not Started"}
+                    </p>
+
+                    <p>
+                      <strong>Days Left:</strong>{" "}
+                      {
+                        submissionDaysLeft == null
+                          ? "Not Started"
+                          : submissionDaysLeft < 0
+                            ? "Overdue"
+                            : `${submissionDaysLeft} days`
+                      }
+                    </p>
+                  </>
+
+                )}
 
                 <Link to={`/tasks/${task._id}`}>
                   View Details
@@ -448,6 +483,12 @@ function CompanyDashboard() {
                     <Link to={`/task-applicants/${task._id}`}>
                       View Applicants
                     </Link>
+
+                    {" | "}
+
+                    <button>
+                      Extend Application Deadline
+                    </button>
 
                     {" | "}
 
@@ -467,16 +508,20 @@ function CompanyDashboard() {
 
                 {task.status === "in_progress" &&
                   task.selectedApplicant && (
+                    <>
+                      <p>
+                        Assigned To:{" "}
+                        {task.selectedApplicant?.name || "Unknown"}
+                        {" ("}
+                        {task.selectedApplicant?.individualType || ""}
+                        {")"}
+                      </p>
 
-                  <p>
-                    Assigned To:{" "}
-                    {task.selectedApplicant.name}
-                    {" ("}
-                    {task.selectedApplicant.individualType}
-                    {")"}
-                  </p>
-
-                )}
+                      <button>
+                        Extend Submission Deadline
+                      </button>
+                    </>
+                  )}
 
                 {task.status === "under_review" && (
                   <>
@@ -489,36 +534,42 @@ function CompanyDashboard() {
 
                 {task.status === "completed" &&
                   !task.reviewStatus?.companyReviewSubmitted && (
-                  <>
-                    <p>
-                      Pending Review
-                    </p>
+                    <>
+                      <p>
+                        Pending Review
+                      </p>
 
-                    {" | "}
-                    <Link to={`/tasks/${task._id}/review`}>
-                      Leave Review
-                    </Link>
-                  </>
-                )}
+                      {" | "}
+                      <Link to={`/tasks/${task._id}/review`}>
+                        Leave Review
+                      </Link>
+                    </>
+                  )}
 
                 {task.status === "completed" &&
                   task.reviewStatus?.companyReviewSubmitted && (
-                  <p>
-                    Company Review Submitted
-                  </p>
-                )}
+                    <p>
+                      Company Review Submitted
+                    </p>
+                  )}
 
                 {task.status === "completed" &&
                   task.reviewStatus?.individualReviewSubmitted && (
-                  <p>
-                    Individual Review Submitted
-                  </p>
-                )}
+                    <p>
+                      Individual Review Submitted
+                    </p>
+                  )}
 
                 {task.status === "revision_requested" && (
-                  <p>
-                    Waiting for resubmission.
-                  </p>
+                  <>
+                    <p>
+                      Waiting for resubmission.
+                    </p>
+
+                    <button>
+                      Extend Submission Deadline
+                    </button>
+                  </>
                 )}
 
               </div>

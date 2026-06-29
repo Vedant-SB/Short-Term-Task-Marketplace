@@ -291,7 +291,8 @@ const acceptApplication = async (req, res) => {
         }
 
         const task = await Task.findById(application.taskId)
-            .select("postedBy status selectedApplicant duration applicationDeadline");
+select:
+"title budget status category duration createdAt applicationDeadline taskStartDate originalDeadline currentDeadline deadlineExtensions revisionReason revisionExpectedChanges"
 
         if (!task) {
             return res.status(404).json({
@@ -322,31 +323,33 @@ const acceptApplication = async (req, res) => {
         }
 
         const taskStartDate = new Date();
-        const taskDeadline = computeTaskDeadline(
-            taskStartDate,
-            task.duration
-        );
 
-        const updatedTask = await Task.findOneAndUpdate(
-            {
-                _id: task._id,
-                postedBy: req.user.userId,
-                status: "open",
-                selectedApplicant: null,
-                applicationDeadline: { $gte: taskStartDate }
-            },
-            {
-                $set: {
-                    selectedApplicant: application.applicantId,
-                    status: "in_progress",
-                    taskStartDate,
-                    taskDeadline
-                }
-            },
-            {
-                new: true
-            }
-        );
+const submissionDeadline = computeTaskDeadline(
+    taskStartDate,
+    task.duration
+);
+
+const updatedTask = await Task.findOneAndUpdate(
+    {
+        _id: task._id,
+        postedBy: req.user.userId,
+        status: "open",
+        selectedApplicant: null,
+        applicationDeadline: { $gte: taskStartDate }
+    },
+    {
+        $set: {
+            selectedApplicant: application.applicantId,
+            status: "in_progress",
+            taskStartDate,
+            originalDeadline: submissionDeadline,
+            currentDeadline: submissionDeadline
+        }
+    },
+    {
+        new: true
+    }
+);
 
         if (!updatedTask) {
             return res.status(409).json({

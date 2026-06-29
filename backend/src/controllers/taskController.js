@@ -623,10 +623,13 @@ const requestChanges = async (req, res) => {
     }
 };
 
-const extendTaskDeadline = async (req, res) => {
+const extendSubmissionDeadline = async (req, res) => {
     try {
 
-        const { days } = req.body;
+        const {
+    days,
+    reason = ""
+} = req.body;
         const normalizedDays = Number(days);
 
         if (!Number.isInteger(normalizedDays) || normalizedDays < 1) {
@@ -655,7 +658,6 @@ const extendTaskDeadline = async (req, res) => {
         const extendableStatuses = [
             "in_progress",
             "revision_requested",
-            "under_review"
         ];
 
         if (!extendableStatuses.includes(task.status)) {
@@ -665,19 +667,20 @@ const extendTaskDeadline = async (req, res) => {
             });
         }
 
-        if (!task.taskDeadline) {
-            return res.status(400).json({
-                success: false,
-                message: "Task deadline is not set"
-            });
-        }
+       if (!task.currentDeadline) {
+    return res.status(400).json({
+        success: false,
+        message: "Submission deadline is not set"
+    });
+}
 
-        const previousDeadline = new Date(task.taskDeadline);
+        const previousDeadline = new Date(task.currentDeadline);
         const newDeadline = addDays(previousDeadline, normalizedDays);
 
-        task.taskDeadline = newDeadline;
+        task.currentDeadline = newDeadline;
         task.deadlineExtensions.push({
             days: normalizedDays,
+            reason,
             previousDeadline,
             newDeadline,
             extendedBy: req.user.userId
@@ -687,7 +690,7 @@ const extendTaskDeadline = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Task deadline extended successfully",
+            message: "Submission deadline extended successfully",
             task
         });
 
@@ -696,6 +699,64 @@ const extendTaskDeadline = async (req, res) => {
             success: false,
             message: error.message
         });
+    }
+};
+
+const extendApplicationDeadline = async (req, res) => {
+    try {
+
+        const { days } = req.body;
+
+        const normalizedDays = Number(days);
+
+        if (!Number.isInteger(normalizedDays) || normalizedDays < 1) {
+            return res.status(400).json({
+                success: false,
+                message: "Extension days must be a positive integer"
+            });
+        }
+
+        const task = await Task.findById(req.params.id);
+
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                message: "Task not found"
+            });
+        }
+
+        if (task.postedBy.toString() !== req.user.userId) {
+            return res.status(403).json({
+                success: false,
+                message: "Not authorized"
+            });
+        }
+
+        if (task.status !== "open") {
+            return res.status(400).json({
+                success: false,
+                message: "Application deadline can only be extended while task is open"
+            });
+        }
+
+        task.applicationDeadline =
+            addDays(task.applicationDeadline, normalizedDays);
+
+        await task.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Application deadline extended successfully",
+            task
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
     }
 };
 
@@ -709,5 +770,6 @@ module.exports = {
     submitWork,
     markTaskComplete,
     requestChanges,
-    extendTaskDeadline
+    extendSubmissionDeadline,
+    extendApplicationDeadline
 };

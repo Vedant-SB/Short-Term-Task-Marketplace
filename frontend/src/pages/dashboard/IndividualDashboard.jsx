@@ -88,22 +88,16 @@ function IndividualDashboard() {
 
   };
 
-  const getDaysLeft = (task) => {
+  const getDaysLeft = (deadline) => {
 
-    if (
-      !task ||
-      !task.taskDeadline
-    ) {
+    if (!deadline) {
       return null;
     }
-
-    const deadline =
-      new Date(task.taskDeadline);
 
     const today = new Date();
 
     return Math.ceil(
-      (deadline - today) /
+      (new Date(deadline) - today) /
       (1000 * 60 * 60 * 24)
     );
 
@@ -258,10 +252,10 @@ function IndividualDashboard() {
       .sort((a, b) => {
 
         const daysA =
-          getDaysLeft(a.taskId);
+          getDaysLeft(a.taskId?.currentDeadline);
 
         const daysB =
-          getDaysLeft(b.taskId);
+          getDaysLeft(b.taskId?.currentDeadline);
 
         return daysA - daysB;
 
@@ -379,7 +373,7 @@ function IndividualDashboard() {
 
             const daysLeft =
               getDaysLeft(
-                application.taskId
+                application.taskId?.currentDeadline
               );
 
             return (
@@ -408,13 +402,22 @@ function IndividualDashboard() {
                 </p>
 
                 <p>
-                  Deadline:
+                  <strong>Submission Deadline:</strong>{" "}
+                  {application.taskId?.currentDeadline
+                    ? new Date(
+                      application.taskId.currentDeadline
+                    ).toLocaleDateString()
+                    : "Not Started"}
+                </p>
+
+                <p>
+                  <strong>Days Left:</strong>{" "}
                   {
                     daysLeft === null
-                      ? " N/A"
+                      ? "Not Started"
                       : daysLeft < 0
-                        ? " Overdue"
-                        : ` ${daysLeft} days left`
+                        ? "Overdue"
+                        : `${daysLeft} days`
                   }
                 </p>
 
@@ -427,30 +430,30 @@ function IndividualDashboard() {
                 {application.taskId?.status ===
                   "in_progress" && (
 
-                  <>
-                    {" | "}
-                    <Link
-                      to={`/tasks/${application.taskId._id}/submit`}
-                    >
-                      Submit Work
-                    </Link>
-                  </>
+                    <>
+                      {" | "}
+                      <Link
+                        to={`/tasks/${application.taskId._id}/submit`}
+                      >
+                        Submit Work
+                      </Link>
+                    </>
 
-                )}
+                  )}
 
                 {application.taskId?.status ===
                   "revision_requested" && (
 
-                  <>
-                    {" | "}
-                    <Link
-                      to={`/tasks/${application.taskId._id}/submit`}
-                    >
-                      Resubmit Work
-                    </Link>
-                  </>
+                    <>
+                      {" | "}
+                      <Link
+                        to={`/tasks/${application.taskId._id}/submit`}
+                      >
+                        Resubmit Work
+                      </Link>
+                    </>
 
-                )}
+                  )}
 
               </div>
 
@@ -552,6 +555,11 @@ function IndividualDashboard() {
             const taskStatus =
               application.taskId?.status;
 
+              const submissionDaysLeft =
+  getDaysLeft(
+    application.taskId?.currentDeadline
+  );
+
             return (
 
               <div
@@ -574,6 +582,26 @@ function IndividualDashboard() {
                   {taskStatus === "revision_requested"
                     ? "Revision Requested"
                     : taskStatus
+                  }
+                </p>
+
+                <p>
+                  <strong>Submission Deadline:</strong>{" "}
+                  {application.taskId?.currentDeadline
+                    ? new Date(
+                      application.taskId.currentDeadline
+                    ).toLocaleDateString()
+                    : "Not Started"}
+                </p>
+
+                <p>
+                  <strong>Days Left:</strong>{" "}
+                  {
+                    submissionDaysLeft == null
+                      ? "Not Started"
+                      : submissionDaysLeft < 0
+                        ? "Overdue"
+                        : `${submissionDaysLeft} days`
                   }
                 </p>
 
@@ -652,18 +680,18 @@ function IndividualDashboard() {
 
                     {application.taskId?.reviewStatus?.companyReviewSubmitted &&
                       !application.taskId?.reviewStatus?.individualReviewSubmitted && (
-                      <>
-                        <p>
-                          Pending Review
-                        </p>
+                        <>
+                          <p>
+                            Pending Review
+                          </p>
 
-                        <Link
-                          to={`/tasks/${application.taskId._id}/review`}
-                        >
-                          Review Company
-                        </Link>
-                      </>
-                    )}
+                          <Link
+                            to={`/tasks/${application.taskId._id}/review`}
+                          >
+                            Review Company
+                          </Link>
+                        </>
+                      )}
 
                     {application.taskId?.reviewStatus?.individualReviewSubmitted && (
 
@@ -787,6 +815,26 @@ function IndividualDashboard() {
                 Status:
                 {
                   application.status
+                }
+              </p>
+
+              <p>
+                <strong>Application Deadline:</strong>{" "}
+                {application.taskId?.applicationDeadline
+                  ? new Date(
+                    application.taskId.applicationDeadline
+                  ).toLocaleDateString()
+                  : "N/A"}
+              </p>
+
+              <p>
+                <strong>Days Left:</strong>{" "}
+                {
+                  getDaysLeft(application.taskId?.applicationDeadline) == null
+                    ? "N/A"
+                    : getDaysLeft(application.taskId?.applicationDeadline) < 0
+                      ? "Closed"
+                      : `${getDaysLeft(application.taskId?.applicationDeadline)} days`
                 }
               </p>
 
