@@ -10,7 +10,6 @@ function CompanyDashboard() {
   const [sortBy, setSortBy] = useState("newest");
   const [loading, setLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState({});
-  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
 
@@ -59,43 +58,6 @@ function CompanyDashboard() {
     return Math.ceil(
       diff / (1000 * 60 * 60 * 24)
     );
-
-  };
-
-  const handleDelete = async (taskId) => {
-
-    const confirmed = window.confirm(
-      "Delete this task?\n\nThis action cannot be undone."
-    );
-
-    if (!confirmed || deletingId) return;
-
-    setDeletingId(taskId);
-
-    try {
-
-      await api.delete(
-        `/tasks/${taskId}`
-      );
-
-      setTasks(
-        tasks.filter(
-          task => task._id !== taskId
-        )
-      );
-
-    } catch (error) {
-
-      alert(
-        error.response?.data?.message ||
-        "Failed to delete task"
-      );
-
-    } finally {
-
-      setDeletingId(null);
-
-    }
 
   };
 
@@ -473,36 +435,19 @@ function CompanyDashboard() {
 
                 )}
 
-                <Link to={`/tasks/${task._id}`}>
-                  View Details
-                </Link>
-
                 {task.status === "open" && (
                   <>
-                    {" | "}
-                    <Link to={`/task-applicants/${task._id}`}>
-                      View Applicants
+                    <Link to={`/tasks/${task._id}`}>
+                      View Details
                     </Link>
 
                     {" | "}
 
-                    <button>
-                      Extend Application Deadline
-                    </button>
+                    <Link to={`/task-applicants/${task._id}`}>
+                      View Applicants
+                    </Link>
 
-                    {" | "}
 
-                    <button
-                      onClick={() =>
-                        handleDelete(task._id)
-                      }
-                      disabled={deletingId === task._id}
-                    >
-                      {deletingId === task._id
-                        ? "Deleting..."
-                        : "Delete"
-                      }
-                    </button>
                   </>
                 )}
 
@@ -517,15 +462,21 @@ function CompanyDashboard() {
                         {")"}
                       </p>
 
-                      <button>
-                        Extend Submission Deadline
-                      </button>
+                      <Link to={`/tasks/${task._id}`}>
+                        View Details
+                      </Link>
+
                     </>
                   )}
 
                 {task.status === "under_review" && (
                   <>
+                    <Link to={`/tasks/${task._id}`}>
+                      View Details
+                    </Link>
+
                     {" | "}
+
                     <Link to={`/tasks/${task._id}/review`}>
                       Review Submission
                     </Link>
@@ -539,7 +490,12 @@ function CompanyDashboard() {
                         Pending Review
                       </p>
 
+                      <Link to={`/tasks/${task._id}`}>
+                        View Details
+                      </Link>
+
                       {" | "}
+
                       <Link to={`/tasks/${task._id}/review`}>
                         Leave Review
                       </Link>
@@ -548,9 +504,15 @@ function CompanyDashboard() {
 
                 {task.status === "completed" &&
                   task.reviewStatus?.companyReviewSubmitted && (
-                    <p>
-                      Company Review Submitted
-                    </p>
+                    <>
+                      <p>
+                        Company Review Submitted
+                      </p>
+
+                      <Link to={`/tasks/${task._id}`}>
+                        View Details
+                      </Link>
+                    </>
                   )}
 
                 {task.status === "completed" &&
@@ -566,9 +528,14 @@ function CompanyDashboard() {
                       Waiting for resubmission.
                     </p>
 
-                    <button>
-                      Extend Submission Deadline
-                    </button>
+                    <p>
+                      Waiting for resubmission.
+                    </p>
+
+                    <Link to={`/tasks/${task._id}`}>
+                      View Details
+                    </Link>
+
                   </>
                 )}
 

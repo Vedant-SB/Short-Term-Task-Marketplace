@@ -61,15 +61,16 @@ function ReviewSubmission() {
 
     try {
       const response = await api.put(`/tasks/${id}/complete`);
+
       setMessage(response.data.message);
-      setTask({
-        ...task,
-        status: "completed",
-      });
+
+      const updatedTask = await api.get(`/tasks/${id}`);
+
+      setTask(updatedTask.data.task);
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-          "Failed to complete task"
+        "Failed to complete task"
       );
     } finally {
       setCompleting(false);
@@ -110,7 +111,7 @@ function ReviewSubmission() {
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-          "Failed to request changes"
+        "Failed to request changes"
       );
     } finally {
       setRequestingChanges(false);
@@ -159,7 +160,7 @@ function ReviewSubmission() {
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-          "Failed to submit review"
+        "Failed to submit review"
       );
     } finally {
       setSubmittingReview(false);
@@ -240,113 +241,113 @@ function ReviewSubmission() {
       {user?.role === "company" &&
         isOwner &&
         task.status === "under_review" && (
-        <>
-          <button
-            onClick={handleComplete}
-            disabled={completing}
-          >
-            {completing
-              ? "Completing..."
-              : "Mark as Complete"}
-          </button>
-
-          {" "}
-
-          <button
-            onClick={() =>
-              setShowRevisionForm(!showRevisionForm)
-            }
-          >
-            Request Changes
-          </button>
-
-          {showRevisionForm && (
-            <form
-              onSubmit={handleRequestChanges}
-              style={{
-                marginTop: "15px",
-                padding: "10px",
-                border: "1px solid black"
-              }}
+          <>
+            <button
+              onClick={handleComplete}
+              disabled={completing}
             >
-              <h3>Request Changes</h3>
+              {completing
+                ? "Completing..."
+                : "Mark as Complete"}
+            </button>
 
-              <div>
-                <label>Reason</label>
-                <br />
-                <textarea
-                  value={revisionReason}
-                  onChange={(e) =>
-                    setRevisionReason(e.target.value)
-                  }
-                  rows="3"
-                  cols="40"
-                  placeholder="Why are changes needed?"
-                  required
-                />
-              </div>
+            {" "}
 
-              <br />
+            <button
+              onClick={() =>
+                setShowRevisionForm(!showRevisionForm)
+              }
+            >
+              Request Changes
+            </button>
 
-              <div>
-                <label>Expected Changes</label>
-                <br />
-                <textarea
-                  value={revisionExpectedChanges}
-                  onChange={(e) =>
-                    setRevisionExpectedChanges(
-                      e.target.value
-                    )
-                  }
-                  rows="3"
-                  cols="40"
-                  placeholder="What changes are expected?"
-                  required
-                />
-              </div>
-
-              <br />
-
-              <button
-                type="submit"
-                disabled={requestingChanges}
+            {showRevisionForm && (
+              <form
+                onSubmit={handleRequestChanges}
+                style={{
+                  marginTop: "15px",
+                  padding: "10px",
+                  border: "1px solid black"
+                }}
               >
-                {requestingChanges
-                  ? "Requesting Changes..."
-                  : "Submit Revision Request"}
-              </button>
+                <h3>Request Changes</h3>
 
-              {" "}
+                <div>
+                  <label>Reason</label>
+                  <br />
+                  <textarea
+                    value={revisionReason}
+                    onChange={(e) =>
+                      setRevisionReason(e.target.value)
+                    }
+                    rows="3"
+                    cols="40"
+                    placeholder="Why are changes needed?"
+                    required
+                  />
+                </div>
 
-              <button
-                type="button"
-                onClick={() => setShowRevisionForm(false)}
-              >
-                Cancel
-              </button>
-            </form>
-          )}
-        </>
-      )}
+                <br />
+
+                <div>
+                  <label>Expected Changes</label>
+                  <br />
+                  <textarea
+                    value={revisionExpectedChanges}
+                    onChange={(e) =>
+                      setRevisionExpectedChanges(
+                        e.target.value
+                      )
+                    }
+                    rows="3"
+                    cols="40"
+                    placeholder="What changes are expected?"
+                    required
+                  />
+                </div>
+
+                <br />
+
+                <button
+                  type="submit"
+                  disabled={requestingChanges}
+                >
+                  {requestingChanges
+                    ? "Requesting Changes..."
+                    : "Submit Revision Request"}
+                </button>
+
+                {" "}
+
+                <button
+                  type="button"
+                  onClick={() => setShowRevisionForm(false)}
+                >
+                  Cancel
+                </button>
+              </form>
+            )}
+          </>
+        )}
 
       {task.status === "revision_requested" &&
         isSelectedApplicant && (
-        <>
-          <h3>Revision Requested</h3>
+          <>
+            <h3>Revision Requested</h3>
 
-          <p>
-            <strong>Reason:</strong>{" "}
-            {task.revisionReason}
-          </p>
+            <p>
+              <strong>Reason:</strong>{" "}
+              {task.revisionReason}
+            </p>
 
-          <p>
-            <strong>Expected Changes:</strong>{" "}
-            {task.revisionExpectedChanges}
-          </p>
+            <p>
+              <strong>Expected Changes:</strong>{" "}
+              {task.revisionExpectedChanges}
+            </p>
 
-          <p>Waiting for resubmission.</p>
-        </>
-      )}
+            <p>Waiting for resubmission.</p>
+          </>
+        )}
 
       {task.status === "completed" && (
         <>
@@ -370,8 +371,8 @@ function ReviewSubmission() {
 
               {companyReviewSubmitted &&
                 !individualReviewSubmitted && (
-                <p>Pending Review</p>
-              )}
+                  <p>Pending Review</p>
+                )}
 
               {individualReviewSubmitted && (
                 <p>Individual Review Submitted</p>

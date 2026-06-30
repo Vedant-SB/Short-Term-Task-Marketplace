@@ -291,8 +291,8 @@ const acceptApplication = async (req, res) => {
         }
 
         const task = await Task.findById(application.taskId)
-select:
-"title budget status category duration createdAt applicationDeadline taskStartDate originalDeadline currentDeadline deadlineExtensions revisionReason revisionExpectedChanges"
+        select:
+        "title budget status category duration createdAt applicationDeadline taskStartDate originalDeadline currentDeadline deadlineExtensions revisionReason revisionExpectedChanges"
 
         if (!task) {
             return res.status(404).json({
@@ -324,32 +324,32 @@ select:
 
         const taskStartDate = new Date();
 
-const submissionDeadline = computeTaskDeadline(
-    taskStartDate,
-    task.duration
-);
-
-const updatedTask = await Task.findOneAndUpdate(
-    {
-        _id: task._id,
-        postedBy: req.user.userId,
-        status: "open",
-        selectedApplicant: null,
-        applicationDeadline: { $gte: taskStartDate }
-    },
-    {
-        $set: {
-            selectedApplicant: application.applicantId,
-            status: "in_progress",
+        const submissionDeadline = computeTaskDeadline(
             taskStartDate,
-            originalDeadline: submissionDeadline,
-            currentDeadline: submissionDeadline
-        }
-    },
-    {
-        new: true
-    }
-);
+            task.duration
+        );
+
+        const updatedTask = await Task.findOneAndUpdate(
+            {
+                _id: task._id,
+                postedBy: req.user.userId,
+                status: "open",
+                selectedApplicant: null,
+                applicationDeadline: { $gte: taskStartDate }
+            },
+            {
+                $set: {
+                    selectedApplicant: application.applicantId,
+                    status: "in_progress",
+                    taskStartDate,
+                    originalDeadline: submissionDeadline,
+                    currentDeadline: submissionDeadline
+                }
+            },
+            {
+                new: true
+            }
+        );
 
         if (!updatedTask) {
             return res.status(409).json({
@@ -414,8 +414,7 @@ const getMyApplications = async (req, res) => {
         })
             .populate({
                 path: "taskId",
-                select: "title budget status category duration createdAt applicationDeadline taskStartDate taskDeadline deadlineExtensions revisionReason revisionExpectedChanges",
-                populate: {
+                select: "title budget status category duration createdAt applicationDeadline taskStartDate originalDeadline currentDeadline deadlineExtensions revisionReason revisionExpectedChanges", populate: {
                     path: "postedBy",
                     select: "companyName"
                 }
