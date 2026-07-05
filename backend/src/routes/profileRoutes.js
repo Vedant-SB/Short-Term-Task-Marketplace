@@ -7,7 +7,8 @@
     } = require("../controllers/profileController");
 
     const authMiddleware = require("../middleware/authMiddleware");
+    const validateObjectId = require("../middleware/validateObjectId");
 
-    router.get("/:userId", authMiddleware, getPublicProfile);
+    router.get("/:userId", validateObjectId, authMiddleware, getPublicProfile);
 
     module.exports = router;
