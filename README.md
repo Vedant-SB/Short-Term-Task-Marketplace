@@ -2,182 +2,178 @@
 
 ## Overview
 
-Short-Term Task Marketplace is a MERN Stack web application that connects companies with students, freelancers, and professionals for short-duration skill-based work.
+Short-Term Task Marketplace is a production-oriented MERN Stack web application that connects companies with students, freelancers, and professionals through a structured short-term hiring workflow.
 
-Many organizations have small tasks that do not justify hiring a full-time employee or intern. At the same time, students and professionals are constantly looking for practical experience, portfolio projects, and paid opportunities. This platform aims to bridge that gap by providing a marketplace where companies can post short-term tasks and individuals can apply, complete work, receive reviews, and build a verified portfolio.
+The platform enables companies to post paid tasks, receive applications, select suitable candidates, manage project execution, handle revisions, review completed work, and maintain long-term records of collaborations. Individuals can discover opportunities, apply for tasks, submit deliverables, build their portfolio, and establish credibility through verified reviews.
 
-The project focuses on implementing a complete marketplace workflow rather than just basic CRUD operations.
+The application follows a complete workflow similar to modern freelance platforms while focusing on short-duration projects ranging from three to seven days.
 
-## Core Workflow
+---
 
-A company creates a task and specifies the required skills, budget, duration, and deliverables. Interested individuals can browse available tasks, apply for them, and wait for selection. The company can review applicants and select the most suitable candidate. Once selected, the task moves into progress. The individual completes the work and submits it through the platform. The company reviews the submission, marks the task as completed, and both parties can leave reviews. Completed projects then become part of the individual's portfolio.
-
-## Features
+## Key Features
 
 ### Authentication and Authorization
 
-The platform supports two main user roles:
+* JWT-based authentication
+* Secure password hashing using bcrypt
+* Role-based authorization
+* Protected routes
+* Persistent login using local storage
+* Automatic logout on unauthorized requests
 
-**Company**
+### Company Features
 
-* Company Name
-* Website
-* Industry
-* Email
-* Password
+* Register and login
+* Create tasks
+* Edit and delete open tasks
+* View all applicants
+* Accept a single applicant
+* Extend application deadlines
+* Extend submission deadlines
+* Request revisions
+* Mark tasks as completed
+* Review individuals
+* Company dashboard
+* Public profile viewing
 
-**Individual**
+### Individual Features
 
-* Student
-* Freelancer
-* Professional
+* Register and login
+* Browse available tasks
+* Apply for tasks
+* Withdraw applications
+* Submit completed work
+* Resubmit after revision requests
+* Review companies
+* Individual dashboard
+* Portfolio generation
+* Public profile viewing
 
-Individual profiles include:
+---
 
-* Name
+## Workflow
+
+```
+Task Created
+      │
+      ▼
+Applications Open
+      │
+      ▼
+Applications Received
+      │
+      ▼
+Applicant Selected
+      │
+      ▼
+Task In Progress
+      │
+      ▼
+Work Submitted
+      │
+      ├────────────► Revision Requested
+      │                   │
+      │                   ▼
+      │              Resubmission
+      │
+      ▼
+Task Completed
+      │
+      ▼
+Company Review
+      │
+      ▼
+Individual Review
+```
+
+---
+
+## Deadline Management
+
+The application manages two independent deadlines throughout the task lifecycle.
+
+### Application Deadline
+
+* Configured during task creation
+* Controls the application period
+* Can be extended by the company
+* Visible only while the task remains open
+
+### Submission Deadline
+
+Activated only after an applicant is selected.
+
+Tracks:
+
+* Task start date
+* Original deadline
+* Current deadline
+
+Supports:
+
+* Deadline extensions
+* Remaining days calculation
+* Timeline tracking
+
+---
+
+## Review System
+
+The platform implements a sequential review process.
+
+1. Company submits a review after task completion.
+2. Individual becomes eligible to review the company.
+3. Reviews become permanent after submission.
+
+This workflow encourages fair and verified feedback.
+
+---
+
+## Dashboards
+
+### Company Dashboard
+
+* Posted tasks
+* Active projects
+* Completed projects
+* Pending reviews
+* Task statistics
+* Deadline tracking
+
+### Individual Dashboard
+
+* Applied tasks
+* Accepted tasks
+* Ongoing work
+* Submission deadlines
+* Portfolio
+* Pending reviews
+
+---
+
+## Profile System
+
+The platform supports both private and public profiles.
+
+Each profile includes:
+
+* Personal information
 * Skills
-* Bio
-* GitHub Profile
+* Ratings
+* Portfolio
+* Completed work
+* Review history
+* Platform statistics
 
-Additional fields are supported based on user type.
+Different layouts are provided for companies and individuals.
 
-Authentication features include:
+---
 
-* User Registration
-* User Login
-* JWT Authentication
-* Protected Routes
-* Role-Based Access Control
-* Profile Endpoint
+## Technology Stack
 
-### Task Management
+### Frontend
 
-Companies can:
-
-* Create Tasks
-* Edit Tasks
-* Delete Tasks
-* View Their Own Tasks
-
-Each task contains:
-
-* Title
-* Description
-* Category
-* Skills Required
-* Budget
-* Duration
-* Deliverables
-* Eligibility Criteria
-
-Task lifecycle:
-
-Open → In Progress → Under Review → Completed
-
-### Task Discovery
-
-Individuals can:
-
-* Browse Available Tasks
-* Search Tasks
-* Filter Tasks
-
-Supported filters:
-
-* Category
-* Skills
-* Budget Range
-* Duration
-
-### Application System
-
-Individuals can apply to open tasks.
-
-Features include:
-
-* Duplicate Application Prevention
-* Eligibility Validation
-* Task Status Validation
-
-Companies can:
-
-* View Applicants
-* Accept One Applicant
-
-When an applicant is selected:
-
-* Task status changes to In Progress
-* Selected application becomes Accepted
-* All remaining applications are automatically rejected
-
-### Task Workspace
-
-Once selected for a task, the individual can:
-
-* Submit Work
-* Add GitHub Repository Links
-* Add Submission Notes
-
-The company can:
-
-* Review the Submission
-* Mark the Task as Completed
-
-### Reviews and Ratings
-
-After a task is completed:
-
-* Companies can review individuals
-* Individuals can review companies
-
-Each review contains:
-
-* Rating (1–5)
-* Comment
-
-The system prevents duplicate reviews and ensures that reviews can only be submitted for completed tasks.
-
-### Portfolio
-
-Completed projects automatically appear in the user's portfolio.
-
-Portfolio information is generated dynamically using completed tasks and reviews instead of maintaining a separate portfolio collection.
-
-Portfolio entries display:
-
-* Project Title
-* Company Name
-* Description
-* Skills Used
-* Budget
-* Duration
-* Submission Link
-* Rating
-* Review Comment
-* Completion Date
-
-### Dashboard Analytics
-
-Company Dashboard:
-
-* Tasks Posted
-* Tasks Completed
-* Open Tasks
-* In Progress Tasks
-* Applications Received
-
-Individual Dashboard:
-
-* Applications Sent
-* Accepted Applications
-* Completed Tasks
-* Average Rating
-
-## Tech Stack
-
-### Frontend (Planned)
-
-* React
+* React (Vite)
 * React Router
 * Axios
 * Context API
@@ -186,55 +182,158 @@ Individual Dashboard:
 
 * Node.js
 * Express.js
-* JWT Authentication
-* bcryptjs
-
-### Database
-
-* MongoDB Atlas
+* MongoDB
 * Mongoose
 
-## Security Features
+### Authentication
 
-The backend includes:
+* JSON Web Tokens (JWT)
+* bcrypt
 
-* Password Hashing
-* JWT Authentication
-* Protected Routes
-* Role-Based Authorization
-* Ownership Validation
-* Duplicate Prevention
-* Controlled Task Updates
-* Task Lifecycle Enforcement
+---
 
-## Current Project Status
+## Project Structure
 
-The backend MVP is complete and includes:
+```
+Short-Term-Task-Marketplace
+│
+├── backend
+│   ├── config
+│   ├── controllers
+│   ├── middleware
+│   ├── models
+│   ├── routes
+│   ├── utils
+│   ├── server.js
+│   └── package.json
+│
+├── frontend
+│   ├── public
+│   ├── src
+│   └── package.json
+│
+└── README.md
+```
 
-* Authentication and Authorization
-* Task Management
-* Search and Filters
-* Application System
-* Applicant Selection Workflow
-* Task Submission Workflow
-* Reviews and Ratings
-* Portfolio System
-* Dashboard Analytics
+---
 
-Frontend development is the next phase of the project.
+## Security
+
+The application incorporates several security measures.
+
+* JWT authentication
+* Password hashing with bcrypt
+* Protected API endpoints
+* Role-based access control
+* Authorization middleware
+* Request validation
+* Secure password storage
+
+---
+
+## Current Capabilities
+
+* Authentication system
+* Role-based authorization
+* Task management
+* Application management
+* Applicant selection workflow
+* Submission workflow
+* Revision workflow
+* Review workflow
+* Deadline management
+* Company dashboard
+* Individual dashboard
+* Portfolio generation
+* Public profiles
+* Statistics
+* Protected routes
+
+---
 
 ## Future Enhancements
 
-Planned features after frontend completion include:
+The following features are planned for future releases.
 
-* Admin Panel
-* Skill Matching System
-* Advanced Analytics
-* File Upload Support
-* Deployment and Production Improvements
+* Advanced search and filtering
+* Real-time notifications
+* In-app messaging
+* File upload support
+* Email notifications
+* Payment gateway integration
+* Administrative dashboard
+* AI-powered task recommendations
+* UI/UX redesign
+* Progressive Web App support
 
-## Project Goal
+---
 
-The main goal of this project is to build a complete marketplace workflow where a company can post a task, an individual can apply, the company can select an applicant, work can be submitted and reviewed, and completed projects can become part of a verified portfolio.
+## Getting Started
 
-The project demonstrates authentication, authorization, database design, marketplace workflows, task lifecycle management, reviews, analytics, and portfolio generation using the MERN stack.
+### Clone the Repository
+
+```bash
+git clone https://github.com/<your-username>/Short-Term-Task-Marketplace.git
+```
+
+### Backend Setup
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## Environment Variables
+
+Create a `.env` file inside the backend directory.
+
+```env
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+```
+
+---
+
+## Documentation
+
+The repository is organized to support future documentation additions.
+
+Planned documentation includes:
+
+* System Architecture
+* Database Schema
+* API Documentation
+* Deployment Guide
+* User Guide
+
+---
+
+## Screenshots
+
+Application screenshots will be added after the frontend redesign is completed.
+
+---
+
+## Deployment
+
+Deployment configuration will be added after the production UI redesign.
+
+Suggested deployment:
+
+Frontend: Vercel
+
+Backend: Render
+
+Database: MongoDB Atlas
