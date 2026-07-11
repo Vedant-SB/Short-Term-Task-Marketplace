@@ -17,6 +17,8 @@ import TaskDetails from "./pages/tasks/TaskDetails";
 import ReviewSubmission from "./pages/tasks/ReviewSubmission";
 import EditTask from "./pages/tasks/EditTask";
 
+import LandingPage from "./pages/LandingPage";
+
 import CompanyDashboard from "./pages/dashboard/CompanyDashboard";
 import IndividualDashboard from "./pages/dashboard/IndividualDashboard";
 
@@ -32,14 +34,14 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
 
-        <Navbar />
+        {/* <Navbar /> */}
 
         <Routes>
 
           <Route
-            path="/"
-            element={<Navigate to="/tasks" />}
-          />
+  path="/"
+  element={<LandingPage />}
+/>
 
           <Route
             path="/login"

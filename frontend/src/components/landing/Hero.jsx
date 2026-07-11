@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
-import heroEcosystem from "@/assets/hero-ecosystem.jpg";
-
+import heroEcosystem from "../../assets/hero-ecosystem.jpg";
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   show: (i = 0) => ({
