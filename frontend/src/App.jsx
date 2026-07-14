@@ -5,7 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import Navbar from "./components/Navbar";
+import AppLayout from "./layouts/AppLayout";
 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -34,131 +34,134 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
 
-        {/* <Navbar /> */}
-
         <Routes>
 
+          {/* ── Public marketing website ─────────────────── */}
+          {/* Landing page renders its own Nav.jsx — no AppLayout */}
           <Route
-  path="/"
-  element={<LandingPage />}
-/>
-
-          <Route
-            path="/login"
-            element={<Login />}
+            path="/"
+            element={<LandingPage />}
           />
 
-          <Route
-            path="/register"
-            element={<Register />}
-          />
+          {/* ── Application routes (with authenticated Navbar) */}
+          <Route element={<AppLayout />}>
 
-          <Route
-            path="/tasks"
-            element={<TaskList />}
-          />
+            <Route
+              path="/login"
+              element={<Login />}
+            />
 
-          <Route
-            path="/tasks/:id"
-            element={<TaskDetails />}
-          />
+            <Route
+              path="/register"
+              element={<Register />}
+            />
 
-          <Route
-            path="/tasks/:id/edit"
-            element={
-              <ProtectedRoute
-                allowedRoles={["company"]}
-              >
-                <EditTask />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/tasks"
+              element={<TaskList />}
+            />
 
-          <Route
-            path="/tasks/:id/submit"
-            element={
-              <ProtectedRoute
-                allowedRoles={["individual"]}
-              >
-                <SubmitWork />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/tasks/:id"
+              element={<TaskDetails />}
+            />
 
-          <Route
-            path="/tasks/create"
-            element={
-              <ProtectedRoute
-                allowedRoles={["company"]}
-              >
-                <CreateTask />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/tasks/:id/edit"
+              element={
+                <ProtectedRoute
+                  allowedRoles={["company"]}
+                >
+                  <EditTask />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/company-dashboard"
-            element={
-              <ProtectedRoute
-                allowedRoles={["company"]}
-              >
-                <CompanyDashboard />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/tasks/:id/submit"
+              element={
+                <ProtectedRoute
+                  allowedRoles={["individual"]}
+                >
+                  <SubmitWork />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/individual-dashboard"
-            element={
-              <ProtectedRoute
-                allowedRoles={["individual"]}
-              >
-                <IndividualDashboard />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/tasks/create"
+              element={
+                <ProtectedRoute
+                  allowedRoles={["company"]}
+                >
+                  <CreateTask />
+                </ProtectedRoute>
+              }
+            />
 
+            <Route
+              path="/company-dashboard"
+              element={
+                <ProtectedRoute
+                  allowedRoles={["company"]}
+                >
+                  <CompanyDashboard />
+                </ProtectedRoute>
+              }
+            />
 
+            <Route
+              path="/individual-dashboard"
+              element={
+                <ProtectedRoute
+                  allowedRoles={["individual"]}
+                >
+                  <IndividualDashboard />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/task-applicants/:taskId"
-            element={
-              <ProtectedRoute
-                allowedRoles={["company"]}
-              >
-                <TaskApplicants />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/task-applicants/:taskId"
+              element={
+                <ProtectedRoute
+                  allowedRoles={["company"]}
+                >
+                  <TaskApplicants />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/tasks/:id/review"
-            element={
-              <ProtectedRoute
-                allowedRoles={["company", "individual"]}
-              >
-                <ReviewSubmission />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/tasks/:id/review"
+              element={
+                <ProtectedRoute
+                  allowedRoles={["company", "individual"]}
+                >
+                  <ReviewSubmission />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/profile/:userId"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/profile/:userId"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+          </Route>
 
         </Routes>
 

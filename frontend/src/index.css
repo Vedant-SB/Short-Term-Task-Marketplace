@@ -156,6 +156,10 @@
     border-color: var(--color-border);
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -163,6 +167,11 @@
     font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  /* Offset for sticky navbar when scrolling to anchored sections */
+  section[id] {
+    scroll-margin-top: 5rem;
   }
 
   h1, h2, h3, .font-display {

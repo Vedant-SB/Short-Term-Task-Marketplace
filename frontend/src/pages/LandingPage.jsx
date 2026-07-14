@@ -2,6 +2,7 @@ import { Nav } from "../components/landing/Nav";
 import { Hero } from "../components/landing/Hero";
 import { OpenTasks } from "../components/landing/OpenTasks";
 import { Process } from "../components/landing/Process";
+import { HowItWorks } from "../components/landing/HowItWorks";
 import { FinalCTA } from "../components/landing/FinalCTA";
 import { Footer } from "../components/landing/Footer";
 
@@ -12,6 +13,7 @@ export default function LandingPage() {
       <Hero />
       <OpenTasks />
       <Process />
+      <HowItWorks />
       <FinalCTA />
       <Footer />
     </>

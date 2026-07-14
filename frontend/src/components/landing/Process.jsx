@@ -11,32 +11,32 @@ const cards = [
   {
     kicker: "Structure",
     title: "Short-term work needs a structured process.",
-    body: "Applications, deadlines, submissions, revisions, and reviews should all happen in one place — not across scattered messages and tools.",
+    body: "Applications, deadlines, submissions, revisions and reviews should all happen in one place instead of across scattered messages and tools.",
     accent: "linear-gradient(135deg, var(--sky), var(--accent))",
   },
   {
     kicker: "Value",
     title: "Short-term work should create long-term value.",
-    body: "Students gain industry exposure, professionals explore side projects, and freelancers earn additional income — while every completed task strengthens their portfolio.",
+    body: "Students gain industry exposure, professionals explore side projects and freelancers earn additional income while every completed task strengthens their portfolio.",
     accent: "linear-gradient(135deg, var(--gold), var(--sky))",
   },
 ];
 
 export function Process() {
   return (
-    <Section id="process" className="relative bg-canvas py-24 overflow-hidden">
+    <Section id="why" className="relative bg-canvas py-24 overflow-hidden">
       <div className="absolute inset-0 bg-dots opacity-25" />
       <div className="relative mx-auto max-w-7xl px-6">
         <div className="max-w-2xl">
           <Eyebrow>Why TaskHub</Eyebrow>
           <h2 className="mt-3 font-display text-3xl md:text-5xl text-ink text-balance">
-            Short-term work deserves a better process.
+            Why TaskHub
           </h2>
           <p className="mt-5 text-lg text-muted-foreground">
-            Traditional hiring and freelance platforms aren't designed for short-term collaboration. TaskHub simplifies the entire journey — from finding the right person to completing the work and building long-term value.
+            Traditional hiring and freelance platforms aren't designed for short-term collaboration. TaskHub makes every stage—from finding the right person to completing the work—simple, structured and transparent.
           </p>
         </div>
-        <div id="why" className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-5">
           {cards.map((c, i) => (
             <motion.article
               key={c.kicker}
