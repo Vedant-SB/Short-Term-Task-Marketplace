@@ -6,6 +6,7 @@ import {
 } from "react-router-dom";
 
 import AppLayout from "./layouts/AppLayout";
+import AuthLayout from "./layouts/AuthLayout";
 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -43,18 +44,20 @@ function App() {
             element={<LandingPage />}
           />
 
-          {/* ── Application routes (with authenticated Navbar) */}
-          <Route element={<AppLayout />}>
-
+          {/* ── Authentication routes (clean layout, no Navbar) ─── */}
+          <Route element={<AuthLayout />}>
             <Route
               path="/login"
               element={<Login />}
             />
-
             <Route
               path="/register"
               element={<Register />}
             />
+          </Route>
+
+          {/* ── Application routes (with authenticated Navbar) */}
+          <Route element={<AppLayout />}>
 
             <Route
               path="/tasks"

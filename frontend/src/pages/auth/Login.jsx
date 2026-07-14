@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+
+import { useNavigate, Link } from "react-router-dom";
 
 import api from "../../api/axios";
+
 import { useAuth } from "../../context/AuthContext";
 
 function Login() {
@@ -52,39 +54,81 @@ function Login() {
   };
 
   return (
-    <div>
-      <h1>Login</h1>
+    <>
+      {/* Header */}
+      <div className="mb-6 text-center">
+        <h1 className="font-display text-2xl text-ink">
+          Welcome Back
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Sign in to continue managing short-term tasks on TaskHub.
+        </p>
+      </div>
 
-      {error && <p>{error}</p>}
+      {/* Error */}
+      {error && (
+        <div className="mb-5 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit}>
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label>Email</label>
-
+          <label
+            htmlFor="login-email"
+            className="mb-1.5 block text-sm font-medium text-ink"
+          >
+            Email
+          </label>
           <input
+            id="login-email"
             type="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
+            placeholder="you@example.com"
+            className="w-full rounded-xl border border-border bg-background/70 px-4 py-2.5 text-sm text-ink placeholder:text-muted-foreground shadow-sm transition-all duration-200 focus:border-accent focus:bg-card focus:outline-none focus:ring-2 focus:ring-accent/20"
           />
         </div>
 
         <div>
-          <label>Password</label>
-
+          <label
+            htmlFor="login-password"
+            className="mb-1.5 block text-sm font-medium text-ink"
+          >
+            Password
+          </label>
           <input
+            id="login-password"
             type="password"
             name="password"
             value={formData.password}
             onChange={handleChange}
+            placeholder="••••••••"
+            className="w-full rounded-xl border border-border bg-background/70 px-4 py-2.5 text-sm text-ink placeholder:text-muted-foreground shadow-sm transition-all duration-200 focus:border-accent focus:bg-card focus:outline-none focus:ring-2 focus:ring-accent/20"
           />
         </div>
 
-        <button type="submit">
+        <button
+          type="submit"
+          className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-elegant transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lift cursor-pointer"
+        >
           Login
         </button>
       </form>
-    </div>
+
+      {/* Footer */}
+      <p className="mt-5 text-center text-sm text-muted-foreground">
+        Don&rsquo;t have an account?{" "}
+        <Link
+          to="/register"
+          className="font-medium text-accent transition-colors hover:text-ink"
+        >
+          Create one
+        </Link>
+      </p>
+    </>
   );
 }
 

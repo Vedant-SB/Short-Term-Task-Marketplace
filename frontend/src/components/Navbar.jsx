@@ -3,11 +3,14 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { motion, useScroll, useMotionTemplate, useTransform } from "framer-motion";
 import { Menu, X, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { Logo } from "./landing/Logo";
+import LogoutDialog from "./LogoutDialog";
 
 function Navbar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   /* ── Glass-morph scroll effect (same as landing Nav) ──────── */
   const { scrollY } = useScroll();
@@ -22,6 +25,7 @@ function Navbar() {
   const handleLogout = () => {
     logout();
     navigate("/login");
+    setShowLogoutDialog(false);
   };
 
   /* ── Role-aware helpers ───────────────────────────────────── */
@@ -58,24 +62,7 @@ function Navbar() {
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         {/* ── Logo ──────────────────────────────────────────── */}
-        <Link to={dashboardPath} className="flex items-center gap-2.5 group">
-          <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary text-primary-foreground shadow-elegant">
-            <span className="absolute inset-0 rounded-[10px] bg-gradient-to-br from-accent/40 to-transparent" />
-            <svg
-              viewBox="0 0 24 24"
-              className="relative h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-            >
-              <path d="M4 12h6l2 -4l2 8l2 -4h4" />
-            </svg>
-          </span>
-          <span className="font-display text-[19px] font-medium tracking-tight text-ink">
-            TaskHub
-          </span>
-        </Link>
+        <Logo to={dashboardPath} />
 
         {/* ── Desktop nav ───────────────────────────────────── */}
         <nav className="hidden md:flex items-center gap-8">
@@ -95,32 +82,15 @@ function Navbar() {
 
         {/* ── Desktop right actions ─────────────────────────── */}
         <div className="flex items-center gap-2">
-          {user && (
-            <button
-              onClick={handleLogout}
-              className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface cursor-pointer"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Logout
-            </button>
-          )}
+          <button
+            onClick={() => setShowLogoutDialog(true)}
+            className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface cursor-pointer"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Logout
+          </button>
 
-          {!user && (
-            <>
-              <Link
-                to="/login"
-                className="hidden sm:inline-flex text-sm text-muted-foreground hover:text-ink px-3 py-2 transition-colors"
-              >
-                Sign in
-              </Link>
-              <Link
-                to="/register"
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-elegant transition-transform hover:-translate-y-0.5"
-              >
-                Get Started
-              </Link>
-            </>
-          )}
+
 
           {/* ── Mobile hamburger ─────────────────────────────── */}
           <button
@@ -159,39 +129,27 @@ function Navbar() {
             </NavLink>
           ))}
 
-          {user && (
-            <button
-              onClick={() => {
-                closeMobile();
-                handleLogout();
-              }}
-              className="text-left transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0 text-sm text-muted-foreground flex items-center gap-1.5"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Logout
-            </button>
-          )}
+          <button
+            onClick={() => {
+              closeMobile();
+              setShowLogoutDialog(true);
+            }}
+            className="text-left transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0 text-sm text-muted-foreground flex items-center gap-1.5"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Logout
+          </button>
 
-          {!user && (
-            <>
-              <Link
-                to="/login"
-                onClick={closeMobile}
-                className="transition-colors hover:text-ink"
-              >
-                Sign in
-              </Link>
-              <Link
-                to="/register"
-                onClick={closeMobile}
-                className="transition-colors hover:text-ink"
-              >
-                Get Started
-              </Link>
-            </>
-          )}
+
         </motion.nav>
       )}
+
+      {/* ── Logout confirmation dialog ────────────────────── */}
+      <LogoutDialog
+        open={showLogoutDialog}
+        onClose={() => setShowLogoutDialog(false)}
+        onConfirm={handleLogout}
+      />
     </motion.header>
   );
 }

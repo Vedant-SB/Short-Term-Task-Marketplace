@@ -1,11 +1,101 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  User,
+  Building2,
+  Mail,
+  GraduationCap,
+  Briefcase,
+  Calendar,
+  Globe,
+  CodeXml,
+  BookOpen,
+  Star,
+  FolderOpen,
+  Code,
+  ExternalLink,
+} from "lucide-react";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 import { ELIGIBLE_LABELS } from "../tasks/taskFormConstants";
 
-function Profile() {
+/* ── Reusable section card ────────────────────────────────────── */
+function SectionCard({ icon: Icon, title, accent, children, delay = 0 }) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+      className="rounded-2xl border border-border bg-card shadow-elegant p-6 md:p-8"
+    >
+      <div className="flex items-center gap-3 mb-5">
+        <div
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface"
+          style={{ color: accent }}
+        >
+          <Icon className="h-4 w-4" strokeWidth={1.8} />
+        </div>
+        <h2 className="font-display text-lg text-ink">{title}</h2>
+      </div>
+      {children}
+    </motion.section>
+  );
+}
 
+/* ── Info row ─────────────────────────────────────────────────── */
+function InfoRow({ icon: Icon, label, value, href }) {
+  if (!value) return null;
+
+  const content = href ? (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+    >
+      {value}
+      <ExternalLink className="h-3 w-3" />
+    </a>
+  ) : (
+    <span className="text-sm text-ink">{value}</span>
+  );
+
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-border/50 last:border-b-0">
+      <Icon className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" strokeWidth={1.6} />
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+        {content}
+      </div>
+    </div>
+  );
+}
+
+/* ── Star rating display ──────────────────────────────────────── */
+function StarRating({ rating }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          className={`h-3.5 w-3.5 ${
+            n <= Math.round(rating)
+              ? "fill-gold text-gold"
+              : "text-border"
+          }`}
+          strokeWidth={1.6}
+        />
+      ))}
+      <span className="ml-1 text-xs text-muted-foreground">{rating}</span>
+    </span>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════ */
+/*  Profile Page                                                   */
+/* ════════════════════════════════════════════════════════════════ */
+function Profile() {
   const { userId } = useParams();
   const { user } = useAuth();
 
@@ -13,412 +103,348 @@ function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const isOwnProfile =
-    !userId || userId === user?.userId;
+  const isOwnProfile = !userId || userId === user?.userId;
 
   useEffect(() => {
-
     const fetchProfile = async () => {
-
       try {
-
         if (isOwnProfile) {
-
-          const profileRes =
-            await api.get("/auth/profile");
-
-          const statsRes =
-            await api.get(
-              `/profiles/${user.userId}`
-            );
-
+          const profileRes = await api.get("/auth/profile");
+          const statsRes = await api.get(`/profiles/${user.userId}`);
           setProfile({
             ...profileRes.data,
             ...statsRes.data.profile,
           });
-
         } else {
-
-          const response =
-            await api.get(
-              `/profiles/${userId}`
-            );
-
+          const response = await api.get(`/profiles/${userId}`);
           setProfile(response.data.profile);
-
         }
-
       } catch (err) {
-
-        setError(
-          err.response?.data?.message ||
-          "Failed to load profile"
-        );
-
+        setError(err.response?.data?.message || "Failed to load profile");
       } finally {
-
         setLoading(false);
-
       }
-
     };
 
     fetchProfile();
-
   }, [userId, user?.userId, isOwnProfile]);
 
+  /* ── Loading / Error states ─────────────────────────────────── */
   if (loading) {
-    return <h2>Loading...</h2>;
+    return (
+      <div className="flex items-center justify-center py-32">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-border border-t-primary" />
+          <p className="text-sm text-muted-foreground">Loading profile…</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <p>{error}</p>;
+    return (
+      <div className="mx-auto max-w-lg py-32 text-center">
+        <p className="text-destructive text-sm">{error}</p>
+      </div>
+    );
   }
 
   if (!profile) {
-    return <p>Profile not found</p>;
+    return (
+      <div className="mx-auto max-w-lg py-32 text-center">
+        <p className="text-muted-foreground text-sm">Profile not found.</p>
+      </div>
+    );
   }
 
   const {
-    statistics = {},
     reviewSummary = {
       averageRating: 0,
       reviewCount: 0,
       reviewHistory: [],
     },
     portfolio = [],
-    profileStatus = "Available",
-    activeTaskCount = 0,
   } = profile;
 
+  const isCompany = profile.role === "company";
+  const displayName = profile.companyName || profile.name || "—";
+
+  /* ── Initials for avatar ────────────────────────────────────── */
+  const initials = displayName
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
-    <div>
+    <div className="mx-auto max-w-3xl px-6 py-10 md:py-14">
+      {/* ── Page header ─────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="mb-8"
+      >
+        <h1 className="font-display text-3xl md:text-4xl text-ink">Profile</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {isOwnProfile ? "Your personal information" : `${displayName}'s profile`}
+        </p>
+      </motion.div>
 
-      <h1>Profile</h1>
+      <div className="space-y-6">
 
-      {/* =============================== */}
-      {/* PROFILE STATUS                   */}
-      {/* =============================== */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* BASIC INFORMATION                                      */}
+        {/* ═══════════════════════════════════════════════════════ */}
 
-      <p>
-        <strong>
-          {profile.role === "company"
-            ? "Company Status"
-            : "Status"}
-        </strong>{" "}
-        {profileStatus}
-      </p>
-
-      <p>
-        <strong>
-          {profile.role === "company"
-            ? "Active Projects"
-            : "Current Active Tasks"}
-        </strong>{" "}
-        {activeTaskCount}
-      </p>
-
-      <hr />
-
-      {/* =============================== */}
-      {/* PERSONAL DETAILS                 */}
-      {/* =============================== */}
-
-      <h2>Personal Details</h2>
-
-      <p>
-        <strong>Name:</strong>{" "}
-        {profile.companyName || profile.name}
-      </p>
-
-      {profile.role === "individual" && (
-        <>
-
-          <p>
-            <strong>Type:</strong>{" "}
-            {ELIGIBLE_LABELS[profile.individualType] ||
-              profile.individualType}
-          </p>
-
-          {profile.college && (
-            <p>
-              <strong>College:</strong>{" "}
-              {profile.college}
-            </p>
-          )}
-
-          {profile.yearsOfExperience !== undefined &&
-            profile.yearsOfExperience !== null && (
-              <p>
-                <strong>Experience:</strong>{" "}
-                {profile.yearsOfExperience} years
+        <SectionCard icon={User} title="Basic Information" accent="var(--primary)" delay={0.05}>
+          {/* Profile photo / avatar */}
+          <div className="flex items-center gap-5 mb-6 pb-6 border-b border-border/50">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-display text-xl shadow-elegant">
+              {initials}
+            </div>
+            <div>
+              <h3 className="font-display text-xl text-ink">{displayName}</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {isCompany
+                  ? "Company"
+                  : ELIGIBLE_LABELS[profile.individualType] || profile.individualType || "Individual"}
               </p>
+            </div>
+          </div>
+
+          {/* Info rows */}
+          <div>
+            <InfoRow icon={Mail} label="Email" value={profile.email} />
+
+            {isCompany ? (
+              <>
+                <InfoRow icon={Building2} label="Industry" value={profile.industry} />
+              </>
+            ) : (
+              <>
+                <InfoRow icon={GraduationCap} label="College" value={profile.college} />
+                <InfoRow icon={Building2} label="Company" value={profile.company} />
+                <InfoRow icon={Briefcase} label="Experience" value={
+                  profile.yearsOfExperience !== undefined && profile.yearsOfExperience !== null
+                    ? `${profile.yearsOfExperience} years`
+                    : null
+                } />
+                <InfoRow icon={Code} label="Primary Domain" value={profile.primaryDomain} />
+              </>
             )}
 
-          {profile.primaryDomain && (
-            <p>
-              <strong>Primary Domain:</strong>{" "}
-              {profile.primaryDomain}
+            <InfoRow
+              icon={Calendar}
+              label="Member Since"
+              value={
+                profile.createdAt
+                  ? new Date(profile.createdAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })
+                  : null
+              }
+            />
+          </div>
+        </SectionCard>
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* ABOUT                                                  */}
+        {/* ═══════════════════════════════════════════════════════ */}
+
+        {profile.bio && (
+          <SectionCard icon={BookOpen} title="About" accent="var(--accent)" delay={0.1}>
+            <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+              {profile.bio}
             </p>
-          )}
-
-        </>
-      )}
-
-      {profile.role === "company" && (
-        <>
-          {profile.industry && (
-            <p>
-              <strong>Industry:</strong>{" "}
-              {profile.industry}
-            </p>
-          )}
-
-          {profile.website && (
-            <p>
-              <strong>Website:</strong>{" "}
-              {profile.website}
-            </p>
-          )}
-        </>
-      )}
-
-      {profile.createdAt && (
-        <p>
-          <strong>Member Since:</strong>{" "}
-          {new Date(
-            profile.createdAt
-          ).toLocaleDateString()}
-        </p>
-      )}
-
-      <hr />
-
-      {/* =============================== */}
-      {/* SKILLS                           */}
-      {/* =============================== */}
-
-      {profile.skills &&
-        profile.skills.length > 0 && (
-          <>
-
-            <h2>Skills</h2>
-
-            <p>
-              {profile.skills.join(", ")}
-            </p>
-
-            <hr />
-
-          </>
+          </SectionCard>
         )}
 
-      {/* =============================== */}
-      {/* STATISTICS                       */}
-      {/* =============================== */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* PROFESSIONAL INFORMATION                                */}
+        {/* ═══════════════════════════════════════════════════════ */}
 
-      <h2>Statistics</h2>
-
-      <p>
-        <strong>Average Rating:</strong>{" "}
-        {statistics.averageRating || reviewSummary.averageRating || 0}
-      </p>
-
-      <p>
-        <strong>Total Reviews:</strong>{" "}
-        {statistics.totalReviews || reviewSummary.reviewCount || 0}
-      </p>
-
-      {profile.role === "individual" ? (
-        <>
-
-          <p>
-            <strong>Completed Tasks:</strong>{" "}
-            {statistics.completedTasks || 0}
-          </p>
-
-          <p>
-            <strong>Portfolio Projects:</strong>{" "}
-            {statistics.portfolioProjects || 0}
-          </p>
-
-          <p>
-            <strong>Applications Accepted:</strong>{" "}
-            {statistics.applicationsAccepted || 0}
-          </p>
-
-          <p>
-            <strong>Applications Completed:</strong>{" "}
-            {statistics.applicationsCompleted || 0}
-          </p>
-
-        </>
-      ) : (
-        <>
-
-          <p>
-            <strong>Tasks Posted:</strong>{" "}
-            {statistics.tasksPosted || 0}
-          </p>
-
-          <p>
-            <strong>Open Tasks:</strong>{" "}
-            {statistics.openTasks || 0}
-          </p>
-
-          <p>
-            <strong>Active Projects:</strong>{" "}
-            {statistics.activeProjects || 0}
-          </p>
-
-          <p>
-            <strong>Under Review:</strong>{" "}
-            {statistics.underReview || 0}
-          </p>
-
-          <p>
-            <strong>Revision Requested:</strong>{" "}
-            {statistics.revisionRequested || 0}
-          </p>
-
-          <p>
-            <strong>Completed Projects:</strong>{" "}
-            {statistics.completedProjects || 0}
-          </p>
-
-          <p>
-            <strong>Individuals Hired:</strong>{" "}
-            {statistics.individualsHired || 0}
-          </p>
-
-        </>
-      )}
-
-      <hr />
-
-      {/* =============================== */}
-      {/* REVIEWS                          */}
-      {/* =============================== */}
-
-      <h2>Reviews</h2>
-
-      {reviewSummary.reviewHistory.length === 0 ? (
-        <p>No reviews yet.</p>
-      ) : (
-        reviewSummary.reviewHistory.map(
-          (review) => (
-
-            <div
-              key={review.id}
-              style={{
-                border: "1px solid black",
-                marginBottom: "10px",
-                padding: "10px",
-              }}
-            >
-
-              <p>
-                <strong>
-                  {profile.role === "company"
-                    ? "Individual"
-                    : "Company"}
-                  :
-                </strong>{" "}
-                {review.reviewer}
-              </p>
-
-              <p>
-                <strong>Rating:</strong>{" "}
-                {review.rating}
-              </p>
-
-              <p>
-                <strong>Comment:</strong>{" "}
-                {review.comment}
-              </p>
-
-              <p>
-                <strong>Date:</strong>{" "}
-                {new Date(
-                  review.date
-                ).toLocaleDateString()}
-              </p>
-
-            </div>
-
-          )
-        )
-      )}
-
-      <hr />
-
-      {/* =============================== */}
-      {/* PORTFOLIO                        */}
-      {/* =============================== */}
-
-
-
-      {profile.role === "individual" && (
-        <>
-          <h2>Portfolio</h2>
-          {portfolio.length === 0 ? (
-            <p>No completed projects yet.</p>
-          ) : (
-            portfolio.map(
-              (project) => (
-
-                <div
-                  key={project.taskId}
-                  style={{
-                    border: "1px solid black",
-                    marginBottom: "10px",
-                    padding: "10px",
-                  }}
-                >
-
-                  <h3>
-                    {project.title}
-                  </h3>
-
-                  <p>
-                    <strong>Category:</strong>{" "}
-                    {project.category}
-                  </p>
-
-                  <p>
-                    <strong>Skills Used:</strong>{" "}
-                    {project.skillsUsed?.join(", ")}
-                  </p>
-
-                  <p>
-                    <strong>Completion Date:</strong>{" "}
-                    {new Date(
-                      project.completedOn
-                    ).toLocaleDateString()}
-                  </p>
-
-                  {project.companyRating && (
-                    <p>
-                      <strong>Company Rating:</strong>{" "}
-                      {project.companyRating}
-                    </p>
-                  )}
-
-                  {project.companyReview && (
-                    <p>
-                      <strong>Company Review:</strong>{" "}
-                      {project.companyReview}
-                    </p>
-                  )}
-
+        {(
+          (profile.skills && profile.skills.length > 0) ||
+          profile.github ||
+          profile.website
+        ) && (
+          <SectionCard icon={Briefcase} title="Professional Information" accent="var(--sky)" delay={0.15}>
+            {/* Skills */}
+            {profile.skills && profile.skills.length > 0 && (
+              <div className="mb-5">
+                <p className="text-xs text-muted-foreground mb-2.5">Skills</p>
+                <div className="flex flex-wrap gap-2">
+                  {profile.skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="inline-flex items-center rounded-full bg-surface px-3 py-1 text-xs font-medium text-ink border border-border/60"
+                    >
+                      {skill}
+                    </span>
+                  ))}
                 </div>
+              </div>
+            )}
 
-              )
-            )
+            {/* Links */}
+            {(profile.github || profile.website) && (
+              <div className={profile.skills && profile.skills.length > 0 ? "pt-4 border-t border-border/50" : ""}>
+                <InfoRow
+                  icon={CodeXml}
+                  label="GitHub"
+                  value={profile.github}
+                  href={
+                    profile.github?.startsWith("http")
+                      ? profile.github
+                      : profile.github
+                      ? `https://github.com/${profile.github}`
+                      : null
+                  }
+                />
+                <InfoRow
+                  icon={Globe}
+                  label="Website"
+                  value={profile.website}
+                  href={
+                    profile.website?.startsWith("http")
+                      ? profile.website
+                      : profile.website
+                      ? `https://${profile.website}`
+                      : null
+                  }
+                />
+              </div>
+            )}
+          </SectionCard>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* REVIEWS                                                */}
+        {/* ═══════════════════════════════════════════════════════ */}
+
+        <SectionCard icon={Star} title="Reviews" accent="var(--gold)" delay={0.2}>
+          {reviewSummary.reviewHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No reviews yet.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {/* Summary */}
+              {(reviewSummary.averageRating > 0 || reviewSummary.reviewCount > 0) && (
+                <div className="flex items-center gap-4 pb-4 border-b border-border/50">
+                  <StarRating rating={reviewSummary.averageRating} />
+                  <span className="text-xs text-muted-foreground">
+                    {reviewSummary.reviewCount} review{reviewSummary.reviewCount !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              )}
+
+              {/* Individual reviews */}
+              {reviewSummary.reviewHistory.map((review) => (
+                <div
+                  key={review.id}
+                  className="rounded-xl border border-border/60 bg-surface/50 p-4"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-ink">
+                      {review.reviewer}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(review.date).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <StarRating rating={review.rating} />
+                  {review.comment && (
+                    <p className="mt-2 text-sm text-foreground leading-relaxed">
+                      {review.comment}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
-        </>
-      )}
+        </SectionCard>
 
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* PORTFOLIO                                              */}
+        {/* ═══════════════════════════════════════════════════════ */}
+
+        {!isCompany && (
+          <SectionCard icon={FolderOpen} title="Portfolio" accent="var(--accent)" delay={0.25}>
+            {portfolio.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No completed projects yet.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {portfolio.map((project) => (
+                  <div
+                    key={project.taskId}
+                    className="rounded-xl border border-border/60 bg-surface/50 p-5"
+                  >
+                    <h3 className="font-display text-base text-ink mb-3">
+                      {project.title}
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                      <div>
+                        <span className="text-xs text-muted-foreground">Category</span>
+                        <p className="text-ink">{project.category}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Completed</span>
+                        <p className="text-ink">
+                          {new Date(project.completedOn).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    {project.skillsUsed && project.skillsUsed.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {project.skillsUsed.map((skill) => (
+                          <span
+                            key={skill}
+                            className="inline-flex rounded-full bg-card border border-border/60 px-2.5 py-0.5 text-[11px] text-muted-foreground"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {(project.companyRating || project.companyReview) && (
+                      <div className="mt-4 pt-3 border-t border-border/50">
+                        {project.companyRating && (
+                          <div className="mb-1">
+                            <StarRating rating={project.companyRating} />
+                          </div>
+                        )}
+                        {project.companyReview && (
+                          <p className="text-sm text-foreground leading-relaxed">
+                            {project.companyReview}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        )}
+      </div>
     </div>
   );
 }
