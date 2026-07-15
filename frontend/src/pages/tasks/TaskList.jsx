@@ -47,57 +47,76 @@ function getUrgency(daysLeft) {
 
 function getDeadlineLabel(daysLeft) {
   if (daysLeft === null) return "No deadline";
-  if (daysLeft < 0) return "Deadline Passed";
+  if (daysLeft < 0) return "Closed";
   if (daysLeft === 0) return "Ends Today";
-  if (daysLeft === 1) return "Ends Tomorrow";
-  return `${daysLeft} Days Left`;
+  if (daysLeft === 1) return "1 Day Left to Apply";
+  return `${daysLeft} Days Left to Apply`;
 }
 
-function formatPostedDate(dateStr) {
+function formatPostedDate(dateStr, relativeStr) {
+  if (dateStr) {
+    const d = new Date(dateStr);
+    if (!Number.isNaN(d.getTime())) {
+      return `Posted on ${d.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })}`;
+    }
+  }
+
+  if (relativeStr) return `Posted ${relativeStr}`;
+  return null;
+}
+
+function formatDisplayDate(dateStr) {
   if (!dateStr) return null;
   const d = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now - d;
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return "Posted today";
-  if (diffDays === 1) return "Posted 1 day ago";
-  if (diffDays < 7) return `Posted ${diffDays} days ago`;
-  return `Posted on ${d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`;
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
 const URGENCY_STYLES = {
   safe: {
     dot: "bg-emerald-500",
-    text: "text-emerald-700",
-    bg: "bg-emerald-50/80",
-    border: "border-emerald-200/80",
-    edge: "from-emerald-400/30 via-emerald-300/10",
+    text: "text-emerald-800",
+    bg: "bg-emerald-100/92",
+    border: "border-emerald-300/90",
+    wash: "from-emerald-200/46 via-emerald-100/30 to-transparent",
+    washHover: "group-hover:from-emerald-200/56 group-hover:via-emerald-100/38",
+    glow: "bg-emerald-400/55 group-hover:bg-emerald-400/70",
   },
   warning: {
     dot: "bg-amber-500",
-    text: "text-amber-700",
-    bg: "bg-amber-50/80",
-    border: "border-amber-200/80",
-    edge: "from-amber-400/30 via-amber-300/10",
+    text: "text-amber-800",
+    bg: "bg-amber-100/92",
+    border: "border-amber-300/90",
+    wash: "from-amber-200/46 via-amber-100/30 to-transparent",
+    washHover: "group-hover:from-amber-200/58 group-hover:via-amber-100/40",
+    glow: "bg-amber-400/55 group-hover:bg-amber-400/70",
   },
   critical: {
     dot: "bg-red-500",
-    text: "text-red-700",
-    bg: "bg-red-50/80",
-    border: "border-red-200/80",
-    edge: "from-red-400/30 via-red-300/10",
+    text: "text-red-800",
+    bg: "bg-red-100/95",
+    border: "border-red-300",
+    wash: "from-rose-200/48 via-rose-100/32 to-transparent",
+    washHover: "group-hover:from-rose-200/62 group-hover:via-rose-100/44",
+    glow: "bg-rose-400/58 group-hover:bg-rose-400/74",
   },
   expired: {
     dot: "bg-gray-400",
-    text: "text-gray-500",
-    bg: "bg-gray-100/70",
-    border: "border-gray-200",
-    edge: "from-gray-300/25 via-gray-200/8",
+    text: "text-gray-600",
+    bg: "bg-gray-100/90",
+    border: "border-gray-300/90",
+    wash: "from-gray-200/44 via-gray-100/28 to-transparent",
+    washHover: "group-hover:from-gray-200/58 group-hover:via-gray-100/40",
+    glow: "bg-gray-400/48 group-hover:bg-gray-400/62",
   },
 };
 
 const STATUS_BADGE = {
-  open: { label: "Open", cls: "bg-emerald-50 text-emerald-700 border-emerald-300" },
+  open: { label: "Open", cls: "bg-emerald-100 text-emerald-900 border-emerald-400" },
   in_progress: { label: "In Progress", cls: "bg-sky-50 text-sky-700 border-sky-300" },
   under_review: { label: "Under Review", cls: "bg-amber-50 text-amber-700 border-amber-300" },
   completed: { label: "Completed", cls: "bg-gray-100 text-gray-500 border-gray-300" },
@@ -402,7 +421,11 @@ function TaskList() {
                     const skills = task.skillsRequired || [];
                     const visibleSkills = skills.slice(0, 4);
                     const extraCount = skills.length - 4;
-                    const postedLabel = formatPostedDate(task.createdAt);
+                    const postedLabel = formatPostedDate(
+                      task.createdAt,
+                      task.postedAgo || task.postedRelativeTime
+                    );
+                    const deadlineDateLabel = formatDisplayDate(task.applicationDeadline);
 
                     return (
                       <motion.article
@@ -415,69 +438,66 @@ function TaskList() {
                           ease: [0.22, 1, 0.36, 1],
                         }}
                         whileHover={{ y: -3 }}
-                        className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-elegant transition-shadow duration-300 hover:shadow-lift"
+                        className="group relative overflow-hidden rounded-[18px] border border-zinc-200/80 bg-white shadow-[0_10px_26px_rgba(15,23,42,0.07)] transition-all duration-300 hover:shadow-[0_18px_34px_rgba(15,23,42,0.11)]"
                       >
-                        {/* Right edge urgency accent */}
+                        {/* Right-side urgency treatment */}
                         <div
-                          className={`pointer-events-none absolute right-0 top-0 bottom-0 w-[3px] bg-gradient-to-l ${uStyle.edge} to-transparent transition-opacity duration-300 opacity-60 group-hover:opacity-100`}
+                          className={`pointer-events-none absolute right-0 top-0 bottom-0 w-[11%] min-w-[78px] bg-gradient-to-l ${uStyle.wash} ${uStyle.washHover} opacity-80 transition-opacity duration-300 group-hover:opacity-100`}
+                        />
+                        <div
+                          className={`pointer-events-none absolute right-0 top-4 bottom-4 w-[5px] rounded-full blur-[2.5px] transition-all duration-300 group-hover:w-[6px] ${uStyle.glow}`}
                         />
 
-                        <div className="p-5 md:p-6">
-                          {/* ── Top row: Title/Company + Status/Applicants */}
-                          <div className="flex items-start justify-between gap-4 mb-3">
-                            {/* Left: title + company + posted */}
+                        <div className="p-6 md:p-6">
+                          {/* ── Top row: Title/Company + Status */}
+                          <div className="mb-3 flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1">
-                              <h3 className="font-display text-lg leading-snug text-ink truncate">
+                              <h3 className="truncate font-display text-[1.3rem] font-bold leading-snug text-slate-900">
                                 {task.title}
                               </h3>
-                              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+                              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                                 <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                                   <Building2 className="h-3 w-3" strokeWidth={1.8} />
                                   {task.postedBy?.companyName || "Company"}
                                 </p>
+                                {postedLabel && <span className="text-muted-foreground/60">•</span>}
                                 {postedLabel && (
-                                  <p className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
-                                    <CalendarDays className="h-3 w-3" strokeWidth={1.6} />
+                                  <p className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/85">
+                                    <CalendarDays className="h-3 w-3" strokeWidth={1.7} />
                                     {postedLabel}
                                   </p>
                                 )}
                               </div>
                             </div>
 
-                            {/* Right: status + applicants */}
-                            <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                            {/* Right: status */}
+                            <div className="flex shrink-0 flex-col items-end gap-1.5">
                               <span
-                                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${statusInfo.cls}`}
+                                className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[13px] font-extrabold leading-none ${statusInfo.cls}`}
                               >
                                 {statusInfo.label}
                               </span>
-                              {task.applicationCount != null && task.applicationCount > 0 && (
-                                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70">
-                                  <Users className="h-3 w-3" strokeWidth={1.6} />
-                                  {task.applicationCount} Applicant{task.applicationCount !== 1 ? "s" : ""}
-                                </span>
-                              )}
                             </div>
                           </div>
 
                           {/* ── Description (clamped) ────────── */}
-                          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-4">
+                          <p className="mb-4 line-clamp-3 text-sm leading-6 text-slate-600">
                             {task.description}
                           </p>
 
                           {/* ── Skill chips ──────────────────── */}
                           {skills.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mb-5">
+                            <div className="mb-5 flex flex-wrap gap-2">
                               {visibleSkills.map((s) => (
                                 <span
                                   key={s}
-                                  className="inline-flex items-center rounded-full bg-surface border border-border/60 px-2.5 py-0.5 text-[11px] text-muted-foreground"
+                                  className="inline-flex items-center rounded-full border border-violet-200/70 bg-violet-50/85 px-3 py-1 text-[11px] font-medium text-violet-700"
                                 >
                                   {s}
                                 </span>
                               ))}
                               {extraCount > 0 && (
-                                <span className="inline-flex items-center rounded-full bg-surface-2 border border-border/60 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                <span className="inline-flex items-center rounded-full border border-violet-200/70 bg-violet-50/85 px-3 py-1 text-[11px] font-semibold text-violet-700">
                                   +{extraCount}
                                 </span>
                               )}
@@ -485,55 +505,77 @@ function TaskList() {
                           )}
 
                           {/* ── Bottom: Metadata + Deadline + CTA */}
-                          <div className="border-t border-border/60 pt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
-                            {/* Budget */}
-                            <div className="flex items-center gap-1.5">
-                              <IndianRupee className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.6} />
-                              <div>
-                                <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground leading-none">Budget</p>
-                                <p className="font-display text-base text-ink leading-tight">
+                          <div className="border-t border-zinc-200/70 pt-4">
+                            <div className="flex w-full flex-wrap items-stretch divide-x divide-zinc-200/70">
+                              {/* Budget */}
+                              <div className="min-w-[130px] flex-1 px-4 py-1.5">
+                                <div className="inline-flex items-center gap-2">
+                                  <IndianRupee className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.7} />
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Budget</p>
+                                </div>
+                                <p className="mt-1 font-display text-base font-bold leading-tight text-slate-900">
                                   ₹{task.budget?.toLocaleString("en-IN") ?? 0}
                                 </p>
                               </div>
-                            </div>
 
-                            {/* Category */}
-                            <div className="flex items-center gap-1.5">
-                              <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.6} />
-                              <div>
-                                <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground leading-none">Category</p>
-                                <p className="text-sm text-ink leading-tight">{task.category || "—"}</p>
+                              {/* Category */}
+                              <div className="min-w-[120px] flex-1 px-4 py-1.5">
+                                <div className="inline-flex items-center gap-2">
+                                  <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.7} />
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Category</p>
+                                </div>
+                                <p className="mt-1 text-base font-semibold leading-tight text-slate-900">{task.category || "—"}</p>
+                              </div>
+
+                              {/* Duration */}
+                              <div className="min-w-[120px] flex-1 px-4 py-1.5">
+                                <div className="inline-flex items-center gap-2">
+                                  <Clock className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.7} />
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Duration</p>
+                                </div>
+                                <p className="mt-1 text-base font-semibold leading-tight text-slate-900">{task.duration} Days</p>
+                              </div>
+
+                              {/* Applicants */}
+                              {task.applicationCount != null && (
+                                <div className="min-w-[140px] flex-1 px-4 py-1.5">
+                                  <div className="inline-flex items-center gap-2">
+                                    <Users className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.7} />
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Applicants</p>
+                                  </div>
+                                  <p className="mt-1 text-base font-semibold leading-tight text-slate-900">
+                                    {task.applicationCount} Applicant{task.applicationCount !== 1 ? "s" : ""}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Deadline */}
+                              <div className="min-w-[210px] flex-[1.25] px-4 py-1.5">
+                                <span
+                                  className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-bold shadow-sm transition-all duration-300 group-hover:brightness-105 ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}
+                                >
+                                  <span className={`h-2 w-2 rounded-full ${uStyle.dot}`} />
+                                  {getDeadlineLabel(daysLeft)}
+                                </span>
+                                {deadlineDateLabel && (
+                                  <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/85">
+                                    <CalendarDays className="h-3 w-3" strokeWidth={1.7} />
+                                    Deadline: {deadlineDateLabel}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* View Details button */}
+                              <div className="ml-auto flex min-w-[170px] items-center justify-end px-4 py-1.5">
+                                <Link
+                                  to={`/tasks/${task._id}`}
+                                  className="group/btn inline-flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elegant hover:brightness-110"
+                                >
+                                  View Details
+                                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5" />
+                                </Link>
                               </div>
                             </div>
-
-                            {/* Duration */}
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.6} />
-                              <div>
-                                <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground leading-none">Duration</p>
-                                <p className="text-sm text-ink leading-tight">{task.duration} Days</p>
-                              </div>
-                            </div>
-
-                            {/* Spacer */}
-                            <div className="flex-1" />
-
-                            {/* Deadline urgency badge */}
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm transition-all duration-300 group-hover:shadow-md ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}
-                            >
-                              <span className={`h-1.5 w-1.5 rounded-full ${uStyle.dot}`} />
-                              {getDeadlineLabel(daysLeft)}
-                            </span>
-
-                            {/* View Details button */}
-                            <Link
-                              to={`/tasks/${task._id}`}
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elegant hover:brightness-110 group/btn"
-                            >
-                              View Details
-                              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5" />
-                            </Link>
                           </div>
                         </div>
                       </motion.article>
