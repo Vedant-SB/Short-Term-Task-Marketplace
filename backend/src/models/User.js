@@ -1,5 +1,14 @@
 const mongoose = require("mongoose");
 
+const isValidHttpUrl = (value) => {
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch (error) {
+        return false;
+    }
+};
+
 const userSchema = new mongoose.Schema(
 {
     role: {
@@ -37,12 +46,35 @@ const userSchema = new mongoose.Schema(
 
     industry: {
         type: String,
-        trim: true
+        trim: true,
+        required: function () {
+            return this.role === "company";
+        }
+    },
+
+    companyDescription: {
+        type: String,
+        trim: true,
+        required: function () {
+            return this.role === "company";
+        },
+        minlength: 30,
+        maxlength: 500
     },
 
     website: {
         type: String,
-        trim: true
+        trim: true,
+        validate: {
+            validator: function (value) {
+                if (!value) {
+                    return true;
+                }
+
+                return isValidHttpUrl(value);
+            },
+            message: "Website must be a valid URL"
+        }
     },
 
     // =========================
@@ -70,12 +102,30 @@ const userSchema = new mongoose.Schema(
 
     bio: {
         type: String,
-        trim: true
+        trim: true,
+        required: function () {
+            return this.role === "individual";
+        }
     },
 
     github: {
         type: String,
         trim: true
+    },
+
+    portfolioWebsite: {
+        type: String,
+        trim: true,
+        validate: {
+            validator: function (value) {
+                if (!value) {
+                    return true;
+                }
+
+                return isValidHttpUrl(value);
+            },
+            message: "Portfolio website must be a valid URL"
+        }
     },
 
     skills: [{

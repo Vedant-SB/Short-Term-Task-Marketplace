@@ -168,6 +168,10 @@ function Profile() {
 
   const isCompany = profile.role === "company";
   const displayName = profile.companyName || profile.name || "—";
+  const aboutText = isCompany ? profile.companyDescription : profile.bio;
+  const companyWebsite = profile.website;
+  const individualPortfolioWebsite =
+    profile.portfolioWebsite || profile.website;
 
   /* ── Initials for avatar ────────────────────────────────────── */
   const initials = displayName
@@ -221,6 +225,7 @@ function Profile() {
             {isCompany ? (
               <>
                 <InfoRow icon={Building2} label="Industry" value={profile.industry} />
+                <InfoRow icon={Globe} label="Website" value={companyWebsite} href={companyWebsite} />
               </>
             ) : (
               <>
@@ -255,10 +260,10 @@ function Profile() {
         {/* ABOUT                                                  */}
         {/* ═══════════════════════════════════════════════════════ */}
 
-        {profile.bio && (
+        {aboutText && (
           <SectionCard icon={BookOpen} title="About" accent="var(--accent)" delay={0.1}>
             <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
-              {profile.bio}
+              {aboutText}
             </p>
           </SectionCard>
         )}
@@ -270,8 +275,8 @@ function Profile() {
         {(
           (profile.skills && profile.skills.length > 0) ||
           profile.github ||
-          profile.website
-        ) && (
+          individualPortfolioWebsite
+        ) && !isCompany && (
           <SectionCard icon={Briefcase} title="Professional Information" accent="var(--sky)" delay={0.15}>
             {/* Skills */}
             {profile.skills && profile.skills.length > 0 && (
@@ -291,7 +296,7 @@ function Profile() {
             )}
 
             {/* Links */}
-            {(profile.github || profile.website) && (
+            {(profile.github || individualPortfolioWebsite) && (
               <div className={profile.skills && profile.skills.length > 0 ? "pt-4 border-t border-border/50" : ""}>
                 <InfoRow
                   icon={CodeXml}
@@ -307,13 +312,13 @@ function Profile() {
                 />
                 <InfoRow
                   icon={Globe}
-                  label="Website"
-                  value={profile.website}
+                  label="Portfolio Website"
+                  value={individualPortfolioWebsite}
                   href={
-                    profile.website?.startsWith("http")
-                      ? profile.website
-                      : profile.website
-                      ? `https://${profile.website}`
+                    individualPortfolioWebsite?.startsWith("http")
+                      ? individualPortfolioWebsite
+                      : individualPortfolioWebsite
+                      ? `https://${individualPortfolioWebsite}`
                       : null
                   }
                 />

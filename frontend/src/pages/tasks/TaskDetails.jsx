@@ -4,6 +4,20 @@ import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 import { ELIGIBLE_LABELS } from "./taskFormConstants";
 
+const normalizeStringArray = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item ?? "").trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    return [value.trim()];
+  }
+
+  return [];
+};
+
 function TaskDetails() {
 
   const { id } = useParams();
@@ -327,6 +341,11 @@ function TaskDetails() {
     return <h2>Task Not Found</h2>;
   }
 
+  const deliverables = normalizeStringArray(task.deliverables);
+  const eligibilityAndPreferences = normalizeStringArray(
+    task.eligibilityAndPreferences
+  );
+
   // =========================================
   // RENDER
   // =========================================
@@ -416,9 +435,27 @@ function TaskDetails() {
           </p>
         )}
 
-      <p>
-        Deliverables: {task.deliverables}
-      </p>
+      {deliverables.length > 0 && (
+        <div>
+          <p>Deliverables:</p>
+          <ul>
+            {deliverables.map((item, index) => (
+              <li key={`deliverable-${index}`}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {eligibilityAndPreferences.length > 0 && (
+        <div>
+          <p>Eligibility & Preferences:</p>
+          <ul>
+            {eligibilityAndPreferences.map((item, index) => (
+              <li key={`eligibility-preference-${index}`}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {task.eligibleFor &&
         task.eligibleFor.length > 0 && (

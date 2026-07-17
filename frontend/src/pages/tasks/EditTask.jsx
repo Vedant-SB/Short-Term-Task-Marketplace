@@ -7,6 +7,25 @@ import {
   ELIGIBLE_OPTIONS,
 } from "./taskFormConstants";
 
+const createListWithOneEmptyItem = () => [""];
+
+const trimAndFilterList = (values) =>
+  values
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+const normalizeToEditableList = (value) => {
+  if (Array.isArray(value) && value.length > 0) {
+    return value.map((item) => String(item ?? ""));
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    return [value.trim()];
+  }
+
+  return createListWithOneEmptyItem();
+};
+
 function EditTask() {
 
   const navigate = useNavigate();
@@ -21,7 +40,8 @@ function EditTask() {
     budget: "",
     duration: "",
     applicationDeadline: "",
-    deliverables: "",
+    deliverables: createListWithOneEmptyItem(),
+    eligibilityAndPreferences: createListWithOneEmptyItem(),
   });
 
   const [loading, setLoading] = useState(true);
@@ -67,7 +87,8 @@ function EditTask() {
           applicationDeadline: task.applicationDeadline
             ? new Date(task.applicationDeadline).toISOString().split("T")[0]
             : "",
-          deliverables: task.deliverables || "",
+          deliverables: normalizeToEditableList(task.deliverables),
+          eligibilityAndPreferences: normalizeToEditableList(task.eligibilityAndPreferences),
         });
 
       } catch (err) {
@@ -120,6 +141,33 @@ function EditTask() {
 
   };
 
+  const handleDynamicListItemChange = (field, index, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: prev[field].map((item, itemIndex) =>
+        itemIndex === index ? value : item
+      ),
+    }));
+  };
+
+  const handleAddListItem = (field) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: [...prev[field], ""],
+    }));
+  };
+
+  const handleRemoveListItem = (field, index) => {
+    setFormData((prev) => {
+      const next = prev[field].filter((_, itemIndex) => itemIndex !== index);
+
+      return {
+        ...prev,
+        [field]: next.length > 0 ? next : createListWithOneEmptyItem(),
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
 
     e.preventDefault();
@@ -132,6 +180,9 @@ function EditTask() {
 
       const payload = {
         ...formData,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category.trim(),
         skillsRequired: formData.skillsRequired
           .split(",")
           .map((s) => s.trim())
@@ -139,6 +190,8 @@ function EditTask() {
         budget: Number(formData.budget),
         duration: Number(formData.duration),
         applicationDeadline: formData.applicationDeadline,
+        deliverables: trimAndFilterList(formData.deliverables),
+        eligibilityAndPreferences: trimAndFilterList(formData.eligibilityAndPreferences),
       };
 
       const response = await api.put(
@@ -380,7 +433,7 @@ function EditTask() {
         <br />
 
         <div>
-          <label>Application Closing Date</label>
+          <label>Application Deadline</label>
           <br />
           <input
             type="date"
@@ -396,15 +449,63 @@ function EditTask() {
         <div>
           <label>Deliverables</label>
           <br />
-          <textarea
-            name="deliverables"
-            value={formData.deliverables}
-            onChange={handleChange}
-            rows="3"
-            cols="50"
-            placeholder="What should be delivered?"
-            required
-          />
+          {formData.deliverables.map((deliverable, index) => (
+            <div key={`deliverable-${index}`} style={{ marginBottom: "8px" }}>
+              <input
+                type="text"
+                value={deliverable}
+                onChange={(e) =>
+                  handleDynamicListItemChange("deliverables", index, e.target.value)
+                }
+                placeholder="Enter deliverable"
+              />
+              {" "}
+              <button
+                type="button"
+                onClick={() => handleRemoveListItem("deliverables", index)}
+              >
+                Remove Deliverable
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => handleAddListItem("deliverables")}
+          >
+            Add Deliverable
+          </button>
+        </div>
+
+        <br />
+
+        <div>
+          <label>Eligibility & Preferences</label>
+          <br />
+          {formData.eligibilityAndPreferences.map((entry, index) => (
+            <div key={`eligibility-preference-${index}`} style={{ marginBottom: "8px" }}>
+              <input
+                type="text"
+                value={entry}
+                onChange={(e) =>
+                  handleDynamicListItemChange("eligibilityAndPreferences", index, e.target.value)
+                }
+                placeholder="Enter eligibility or preference"
+              />
+              {" "}
+              <button
+                type="button"
+                onClick={() => handleRemoveListItem("eligibilityAndPreferences", index)}
+              >
+                Remove Entry
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => handleAddListItem("eligibilityAndPreferences")}
+          >
+            Add Entry
+          </button>
         </div>
 
         <br />

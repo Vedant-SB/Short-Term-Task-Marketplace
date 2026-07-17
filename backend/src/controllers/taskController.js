@@ -11,6 +11,26 @@ const {
     addDays
 } = require("../utils/taskWorkflowHelpers");
 
+const sanitizeStringArray = (value) => {
+    if (!Array.isArray(value)) {
+        if (typeof value === "string") {
+            const trimmed = value.trim();
+            return trimmed ? [trimmed] : [];
+        }
+        return [];
+    }
+
+    return value
+        .map(item => String(item || "").trim())
+        .filter(Boolean);
+};
+
+const normalizeTaskArraysForResponse = (taskData) => ({
+    ...taskData,
+    deliverables: sanitizeStringArray(taskData.deliverables),
+    eligibilityAndPreferences: sanitizeStringArray(taskData.eligibilityAndPreferences)
+});
+
 const createTask = async (req, res) => {
     try {
 
@@ -22,6 +42,7 @@ const createTask = async (req, res) => {
             budget,
             duration,
             deliverables,
+            eligibilityAndPreferences,
             eligibleFor,
             applicationDeadline
         } = req.body;
@@ -47,11 +68,12 @@ const createTask = async (req, res) => {
             title,
             description,
             category,
-            skillsRequired,
+            skillsRequired: sanitizeStringArray(skillsRequired),
             budget,
             duration,
-            deliverables,
-            eligibleFor,
+            deliverables: sanitizeStringArray(deliverables),
+            eligibilityAndPreferences: sanitizeStringArray(eligibilityAndPreferences),
+            eligibleFor: sanitizeStringArray(eligibleFor),
             applicationDeadline: parsedApplicationDeadline,
             postedBy: req.user.userId
         });
@@ -59,7 +81,7 @@ const createTask = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "Task created successfully",
-            task
+            task: normalizeTaskArraysForResponse(task.toObject())
         });
 
     } catch (error) {
@@ -128,7 +150,7 @@ const getAllTasks = async (req, res) => {
         res.status(200).json({
             success: true,
             count: tasks.length,
-            tasks
+            tasks: tasks.map(task => normalizeTaskArraysForResponse(task.toObject()))
         });
 
     } catch (error) {
@@ -213,7 +235,7 @@ const getTaskById = async (req, res) => {
                 reviewMap.get(task._id.toString()) || []
             );
 
-        const taskData = task.toObject();
+        const taskData = normalizeTaskArraysForResponse(task.toObject());
         taskData.reviewStatus = reviewStatus;
 
         res.status(200).json({
@@ -266,7 +288,7 @@ const getMyTasks = async (req, res) => {
             );
 
         const tasksWithReviews = tasks.map((task) => {
-            const taskData = task.toObject();
+            const taskData = normalizeTaskArraysForResponse(task.toObject());
             taskData.reviewStatus =
                 buildReviewStatus(
                     reviewMap.get(
@@ -357,11 +379,24 @@ const updateTask = async (req, res) => {
             title: req.body.title,
             description: req.body.description,
             category: req.body.category,
-            skillsRequired: req.body.skillsRequired,
+            skillsRequired:
+                req.body.skillsRequired === undefined
+                    ? undefined
+                    : sanitizeStringArray(req.body.skillsRequired),
             budget: req.body.budget,
             duration: req.body.duration,
-            deliverables: req.body.deliverables,
-            eligibleFor: req.body.eligibleFor,
+            deliverables:
+                req.body.deliverables === undefined
+                    ? undefined
+                    : sanitizeStringArray(req.body.deliverables),
+            eligibilityAndPreferences:
+                req.body.eligibilityAndPreferences === undefined
+                    ? undefined
+                    : sanitizeStringArray(req.body.eligibilityAndPreferences),
+            eligibleFor:
+                req.body.eligibleFor === undefined
+                    ? undefined
+                    : sanitizeStringArray(req.body.eligibleFor),
             applicationDeadline: parsedApplicationDeadline
         };
 
@@ -383,7 +418,7 @@ const updateTask = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Task updated successfully",
-            task: updatedTask
+            task: normalizeTaskArraysForResponse(updatedTask.toObject())
         });
 
     } catch (error) {

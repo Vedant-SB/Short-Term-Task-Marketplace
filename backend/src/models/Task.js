@@ -1,5 +1,20 @@
 const mongoose = require("mongoose");
 
+const normalizeStringArray = (value) => {
+    if (Array.isArray(value)) {
+        return value
+            .map(item => String(item || "").trim())
+            .filter(Boolean);
+    }
+
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        return trimmed ? [trimmed] : [];
+    }
+
+    return [];
+};
+
 const taskSchema = new mongoose.Schema(
     {
         title: {
@@ -67,8 +82,21 @@ const taskSchema = new mongoose.Schema(
         },
 
         deliverables: {
-            type: String,
-            required: true
+            type: [{
+                type: String,
+                trim: true
+            }],
+            default: [],
+            set: normalizeStringArray
+        },
+
+        eligibilityAndPreferences: {
+            type: [{
+                type: String,
+                trim: true
+            }],
+            default: [],
+            set: normalizeStringArray
         },
 
         status: {

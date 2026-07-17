@@ -9,6 +9,15 @@ const selectCls =
   "w-full rounded-xl border border-border bg-background/70 px-4 py-2.5 text-sm text-ink shadow-sm transition-all duration-200 focus:border-accent focus:bg-card focus:outline-none focus:ring-2 focus:ring-accent/20 appearance-none cursor-pointer";
 const labelCls = "mb-1.5 block text-sm font-medium text-ink";
 
+const isValidHttpUrl = (value) => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
 function Register() {
   const navigate = useNavigate();
 
@@ -17,9 +26,11 @@ function Register() {
 
     email: "",
     password: "",
+    confirmPassword: "",
 
     companyName: "",
     industry: "",
+    companyDescription: "",
     website: "",
 
     individualType: "first_year_student",
@@ -27,6 +38,7 @@ function Register() {
     college: "",
     bio: "",
     github: "",
+    portfolioWebsite: "",
     skills: "",
 
     company: "",
@@ -46,15 +58,76 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setMessage("");
+
+    const trimmedData = {
+      ...formData,
+      email: formData.email.trim(),
+      companyName: formData.companyName.trim(),
+      industry: formData.industry.trim(),
+      companyDescription: formData.companyDescription.trim(),
+      website: formData.website.trim(),
+      name: formData.name.trim(),
+      college: formData.college.trim(),
+      bio: formData.bio.trim(),
+      github: formData.github.trim(),
+      portfolioWebsite: formData.portfolioWebsite.trim(),
+      skills: formData.skills.trim(),
+      company: formData.company.trim(),
+      primaryDomain: formData.primaryDomain.trim(),
+    };
+
+    if (!trimmedData.email || !formData.password) {
+      setError("Email and password are required");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Password and confirm password must match");
+      return;
+    }
+
+    if (trimmedData.role === "company") {
+      if (!trimmedData.companyName || !trimmedData.industry || !trimmedData.companyDescription) {
+        setError("Company name, industry, and company description are required");
+        return;
+      }
+
+      if (trimmedData.companyDescription.length < 30 || trimmedData.companyDescription.length > 500) {
+        setError("Company description must be between 30 and 500 characters");
+        return;
+      }
+
+      if (trimmedData.website && !isValidHttpUrl(trimmedData.website)) {
+        setError("Website must be a valid URL");
+        return;
+      }
+    }
+
+    if (trimmedData.role === "individual") {
+      if (!trimmedData.bio) {
+        setError("Bio is required");
+        return;
+      }
+
+      if (trimmedData.portfolioWebsite && !isValidHttpUrl(trimmedData.portfolioWebsite)) {
+        setError("Portfolio website must be a valid URL");
+        return;
+      }
+    }
 
     try {
       const payload = {
-        ...formData,
-        skills: formData.skills
+        ...trimmedData,
+        password: formData.password,
+        skills: trimmedData.skills
           .split(",")
           .map((skill) => skill.trim())
           .filter(Boolean),
       };
+
+      delete payload.confirmPassword;
 
       await api.post("/auth/register", payload);
 
@@ -157,6 +230,19 @@ function Register() {
           </div>
         </div>
 
+        <div>
+          <label htmlFor="reg-confirmPassword" className={labelCls}>Confirm Password</label>
+          <input
+            id="reg-confirmPassword"
+            type="password"
+            name="confirmPassword"
+            placeholder="••••••••"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            className={inputCls}
+          />
+        </div>
+
         {/* ── Company fields ──────────────────────────────────── */}
         {formData.role === "company" ? (
           <div className="space-y-4">
@@ -199,6 +285,19 @@ function Register() {
                   className={inputCls}
                 />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="reg-companyDescription" className={labelCls}>Company Description</label>
+              <textarea
+                id="reg-companyDescription"
+                name="companyDescription"
+                placeholder="Tell individuals what your company does, what kind of tasks you post, and what collaboration looks like."
+                value={formData.companyDescription}
+                onChange={handleChange}
+                rows="4"
+                className={inputCls}
+              />
             </div>
           </div>
         ) : (
@@ -250,6 +349,47 @@ function Register() {
                   name="name"
                   placeholder="Jane Doe"
                   value={formData.name}
+                  onChange={handleChange}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="reg-bio" className={labelCls}>Bio</label>
+              <textarea
+                id="reg-bio"
+                name="bio"
+                placeholder="Write a short introduction about yourself"
+                value={formData.bio}
+                onChange={handleChange}
+                rows="3"
+                className={inputCls}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="reg-github" className={labelCls}>Github</label>
+                <input
+                  id="reg-github"
+                  type="text"
+                  name="github"
+                  placeholder="github-username"
+                  value={formData.github}
+                  onChange={handleChange}
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="reg-portfolioWebsite" className={labelCls}>Portfolio Website</label>
+                <input
+                  id="reg-portfolioWebsite"
+                  type="text"
+                  name="portfolioWebsite"
+                  placeholder="https://portfolio.com"
+                  value={formData.portfolioWebsite}
                   onChange={handleChange}
                   className={inputCls}
                 />
