@@ -210,12 +210,10 @@ const getTaskById = async (req, res) => {
                     applicantId: req.user.userId
                 })
                 : Promise.resolve(null),
-            isTaskOwner
-                ? Application.countDocuments({
-                    taskId: task._id,
-                    status: { $ne: "withdrawn" }
-                })
-                : Promise.resolve(0),
+            Application.countDocuments({
+                taskId: task._id,
+                status: { $ne: "withdrawn" }
+            }),
             getTaskReviewStatusMap([task._id])
         ]);
 
