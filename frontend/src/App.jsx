@@ -26,7 +26,9 @@ import IndividualDashboard from "./pages/dashboard/IndividualDashboard";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 import TaskApplicants from "./pages/applications/TaskApplicants";
+import CompanyApplicants from "./pages/applications/CompanyApplicants";
 import Profile from "./pages/profile/Profile";
+import ApplicantPortfolio from "./pages/profile/ApplicantPortfolio";
 
 import { AuthProvider } from "./context/AuthContext";
 
@@ -125,6 +127,17 @@ function App() {
             />
 
             <Route
+              path="/company-applicants"
+              element={
+                <ProtectedRoute
+                  allowedRoles={["company"]}
+                >
+                  <CompanyApplicants />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
               path="/task-applicants/:taskId"
               element={
                 <ProtectedRoute
@@ -160,6 +173,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/portfolio/:userId"
+              element={
+                <ProtectedRoute>
+                  <ApplicantPortfolio />
                 </ProtectedRoute>
               }
             />

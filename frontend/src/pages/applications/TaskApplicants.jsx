@@ -175,9 +175,10 @@ function TaskApplicants() {
               </p>
 
               <Link
-                to={`/profile/${application.applicantId?._id}`}
+                to={`/portfolio/${application.applicantId?._id}`}
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
               >
-                View Profile
+                View Portfolio
               </Link>
 
               {application.status === "pending" && (

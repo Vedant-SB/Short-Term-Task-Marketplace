@@ -1,5 +1,6 @@
 const Task = require("../models/Task");
 const Application = require("../models/Application");
+const User = require("../models/User");
 const {
     getTaskReviewStatusMap,
     buildReviewStatus,
@@ -16,24 +17,16 @@ const getCompanyDashboard = async (req, res) => {
 
         const companyId = req.user.userId;
 
+        // ── Core stats + company info + review summary ──────────
         const [
-            tasksPosted,
-            completedTasks,
+            companyUser,
             openTasks,
             inProgressTasks,
-            revisionRequestedTasks,
-            underReviewTasks,
-            individualsHired,
+            completedTasks,
             companyTasks,
             companyReviewSummary
         ] = await Promise.all([
-            Task.countDocuments({
-                postedBy: companyId
-            }),
-            Task.countDocuments({
-                postedBy: companyId,
-                status: "completed"
-            }),
+            User.findById(companyId).select("companyName"),
             Task.countDocuments({
                 postedBy: companyId,
                 status: "open"
@@ -44,15 +37,7 @@ const getCompanyDashboard = async (req, res) => {
             }),
             Task.countDocuments({
                 postedBy: companyId,
-                status: "revision_requested"
-            }),
-            Task.countDocuments({
-                postedBy: companyId,
-                status: "under_review"
-            }),
-            Task.countDocuments({
-                postedBy: companyId,
-                selectedApplicant: { $ne: null }
+                status: "completed"
             }),
             Task.find({
                 postedBy: companyId
@@ -64,55 +49,105 @@ const getCompanyDashboard = async (req, res) => {
             task => task._id
         );
 
-        const reviewMap =
-            await getTaskReviewStatusMap(taskIds);
-
-        const completedReviews =
-            companyTasks.filter((task) => {
-                const status =
-                    buildReviewStatus(
-                        reviewMap.get(
-                            task._id.toString()
-                        ) || []
-                    );
-
-                return status.companyReviewSubmitted;
-            }).length;
-
-        const pendingReviews =
-            companyTasks.filter((task) => {
-                const status =
-                    buildReviewStatus(
-                        reviewMap.get(
-                            task._id.toString()
-                        ) || []
-                    );
-
-                return task.status === "completed" &&
-                    !status.companyReviewSubmitted;
-            }).length;
-
+        // ── Applications count ──────────────────────────────────
         const applicationsReceived = taskIds.length > 0
             ? await Application.countDocuments({
                 taskId: { $in: taskIds }
             })
             : 0;
 
+        // ── Recent Tasks (latest 5) with application counts ─────
+        const recentTaskDocs = await Task.find({
+            postedBy: companyId
+        })
+            .select("title description category budget status applicationDeadline currentDeadline createdAt")
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .lean();
+
+        // Get application counts for recent tasks
+        const recentTaskIds = recentTaskDocs.map(t => t._id);
+        const applicationCounts = recentTaskIds.length > 0
+            ? await Application.aggregate([
+                {
+                    $match: {
+                        taskId: { $in: recentTaskIds },
+                        status: { $ne: "withdrawn" }
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$taskId",
+                        count: { $sum: 1 }
+                    }
+                }
+            ])
+            : [];
+
+        const countMap = new Map(
+            applicationCounts.map(c => [c._id.toString(), c.count])
+        );
+
+        const recentTasks = recentTaskDocs.map(task => ({
+            ...task,
+            applicationCount: countMap.get(task._id.toString()) || 0
+        }));
+
+        // ── Recent Applications (latest 5 across all tasks) ─────
+        const recentApplications = taskIds.length > 0
+            ? await Application.find({
+                taskId: { $in: taskIds }
+            })
+                .populate("applicantId", "name profileImage")
+                .populate("taskId", "title")
+                .sort({ appliedAt: -1 })
+                .limit(5)
+                .lean()
+            : [];
+
+        // ── Upcoming Deadlines (future only, sorted ascending) ──
+        const now = new Date();
+
+        const upcomingDeadlines = await Task.find({
+            postedBy: companyId,
+            status: { $in: ["open", "in_progress"] },
+            $or: [
+                { applicationDeadline: { $gt: now } },
+                { currentDeadline: { $gt: now } }
+            ]
+        })
+            .select("title status applicationDeadline currentDeadline")
+            .lean();
+
+        // Sort by the nearest future deadline
+        upcomingDeadlines.sort((a, b) => {
+            const deadlineA = a.status === "open"
+                ? a.applicationDeadline
+                : a.currentDeadline;
+            const deadlineB = b.status === "open"
+                ? b.applicationDeadline
+                : b.currentDeadline;
+
+            return new Date(deadlineA) - new Date(deadlineB);
+        });
+
+        const limitedDeadlines = upcomingDeadlines.slice(0, 5);
+
         res.status(200).json({
             success: true,
             dashboard: {
-                tasksPosted,
-                completedTasks,
+                companyName: companyUser?.companyName || "Company",
                 openTasks,
                 inProgressTasks,
-                underReviewTasks,
-                revisionRequestedTasks,
+                completedTasks,
                 applicationsReceived,
-                individualsHired,
                 averageRating:
                     companyReviewSummary.averageRating,
-                pendingReviews,
-                completedReviews
+                reviewCount:
+                    companyReviewSummary.reviewCount,
+                recentTasks,
+                recentApplications,
+                upcomingDeadlines: limitedDeadlines
             }
         });
 

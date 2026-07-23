@@ -186,7 +186,13 @@ const getPublicProfile = async (req, res) => {
 
                     title: task.title,
 
+                    companyName: task.postedBy?.companyName || "Company",
+
                     category: task.category,
+
+                    budget: task.budget,
+
+                    duration: task.duration,
 
                     skillsUsed: task.skillsRequired,
 

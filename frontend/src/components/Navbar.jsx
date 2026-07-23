@@ -35,11 +35,11 @@ function Navbar() {
   const navLinks = [
     { label: "Dashboard", to: dashboardPath },
     {
-      label: user?.role === "company" ? "All Tasks" : "Browse Tasks",
+      label: user?.role === "company" ? "My Tasks" : "Browse Tasks",
       to: "/tasks",
     },
     ...(user?.role === "company"
-      ? [{ label: "Post Task", to: "/tasks/create" }]
+      ? [{ label: "Applicants", to: "/company-applicants" }]
       : []),
     { label: "Profile", to: "/profile" },
   ];

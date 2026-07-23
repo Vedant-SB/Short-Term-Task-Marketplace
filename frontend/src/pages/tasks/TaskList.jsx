@@ -4,9 +4,6 @@ import { motion } from "framer-motion";
 import {
   Search,
   Layers3,
-  IndianRupee,
-  CalendarClock,
-  Wrench,
   CircleDot,
   ArrowUpDown,
   SlidersHorizontal,
@@ -17,10 +14,12 @@ import {
   SearchX,
   CalendarDays,
   Users,
+  IndianRupee,
 } from "lucide-react";
 import api from "../../api/axios";
+import { useAuth } from "../../context/AuthContext";
 
-/* ── Category accent map (same as landing page) ──────────── */
+/* ── Category accent map ─────────────────────────────────── */
 const CATEGORY_ACCENT = {
   Design: "var(--accent)",
   Development: "var(--primary)",
@@ -121,18 +120,29 @@ const STATUS_BADGE = {
   under_review: { label: "Under Review", cls: "bg-amber-50 text-amber-700 border-amber-300" },
   completed: { label: "Completed", cls: "bg-gray-100 text-gray-500 border-gray-300" },
   revision_requested: { label: "Revision", cls: "bg-orange-50 text-orange-700 border-orange-300" },
+  closed: { label: "Closed", cls: "bg-gray-100 text-gray-400 border-gray-300" },
 };
 
 const inputCls =
   "w-full rounded-xl border border-border bg-background/70 px-4 py-2.5 text-sm text-ink placeholder:text-muted-foreground shadow-sm transition-all duration-200 focus:border-accent focus:bg-card focus:outline-none focus:ring-2 focus:ring-accent/20";
 
 const compactSelectCls =
-  "w-full rounded-lg border border-border bg-background/75 px-3 py-2 text-sm text-ink shadow-sm transition-all duration-200 focus:border-accent focus:bg-card focus:outline-none focus:ring-2 focus:ring-accent/20 appearance-none";
+  "w-full rounded-lg border border-border bg-background/75 px-3 py-2 text-sm text-ink shadow-sm transition-all duration-200 focus:border-accent focus:bg-card focus:outline-none focus:ring-2 focus:ring-accent/20 cursor-pointer";
 
 const sectionLabelCls =
   "mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 
-function FilterControls() {
+function FilterControls({
+  searchQuery,
+  setSearchQuery,
+  selectedCategory,
+  setSelectedCategory,
+  selectedStatus,
+  setSelectedStatus,
+  sortBy,
+  setSortBy,
+  isCompany,
+}) {
   return (
     <div className="space-y-4">
       <div>
@@ -142,9 +152,10 @@ function FilterControls() {
         </label>
         <input
           type="text"
-          placeholder="Search by title, company, or skill"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={isCompany ? "Search your tasks..." : "Search by title, company, or skill"}
           className={inputCls}
-          disabled
         />
       </div>
 
@@ -160,38 +171,19 @@ function FilterControls() {
               <Layers3 className="h-3.5 w-3.5" />
               Category
             </span>
-            <select className={compactSelectCls} disabled>
-              <option>All categories</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="inline-flex w-20 items-center gap-1.5 text-xs text-muted-foreground">
-              <IndianRupee className="h-3.5 w-3.5" />
-              Budget
-            </span>
-            <select className={compactSelectCls} disabled>
-              <option>Any budget</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="inline-flex w-20 items-center gap-1.5 text-xs text-muted-foreground">
-              <CalendarClock className="h-3.5 w-3.5" />
-              Duration
-            </span>
-            <select className={compactSelectCls} disabled>
-              <option>Any duration</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="inline-flex w-20 items-center gap-1.5 text-xs text-muted-foreground">
-              <Wrench className="h-3.5 w-3.5" />
-              Skills
-            </span>
-            <select className={compactSelectCls} disabled>
-              <option>All skills</option>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className={compactSelectCls}
+            >
+              <option value="all">All categories</option>
+              <option value="Development">Development</option>
+              <option value="Design">Design</option>
+              <option value="Data">Data</option>
+              <option value="Writing">Writing</option>
+              <option value="Research">Research</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
@@ -200,8 +192,18 @@ function FilterControls() {
               <CircleDot className="h-3.5 w-3.5" />
               Status
             </span>
-            <select className={compactSelectCls} disabled>
-              <option>All statuses</option>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className={compactSelectCls}
+            >
+              <option value="all">All statuses</option>
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="under_review">Under Review</option>
+              <option value="revision_requested">Revision Requested</option>
+              <option value="completed">Completed</option>
+              <option value="closed">Closed</option>
             </select>
           </div>
 
@@ -210,8 +212,15 @@ function FilterControls() {
               <ArrowUpDown className="h-3.5 w-3.5" />
               Sort
             </span>
-            <select className={compactSelectCls} disabled>
-              <option>Newest first</option>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className={compactSelectCls}
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="budget_high">Budget: High to Low</option>
+              <option value="budget_low">Budget: Low to High</option>
             </select>
           </div>
         </div>
@@ -221,50 +230,84 @@ function FilterControls() {
 }
 
 function TaskList() {
+  const { user } = useAuth();
+  const isCompany = user?.role === "company";
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const activeFilterCount = 0;
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
-
     const fetchTasks = async () => {
-
       try {
-
-        const response = await api.get("/tasks");
-
-        setTasks(response.data.tasks);
-
+        const endpoint = isCompany ? "/tasks/my-tasks" : "/tasks";
+        const response = await api.get(endpoint);
+        setTasks(response.data.tasks || []);
       } catch (error) {
-
-        console.log(error);
-
+        console.error(error);
       } finally {
-
         setLoading(false);
-
       }
-
     };
 
     fetchTasks();
+  }, [isCompany]);
 
-  }, []);
+  // Filtering & Sorting
+  let filteredTasks = tasks.filter((t) => {
+    if (selectedCategory !== "all" && t.category !== selectedCategory) {
+      return false;
+    }
+    if (selectedStatus !== "all" && t.status !== selectedStatus) {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const titleMatch = t.title?.toLowerCase().includes(q);
+      const categoryMatch = t.category?.toLowerCase().includes(q);
+      const companyMatch = t.postedBy?.companyName?.toLowerCase().includes(q);
+      const skillsMatch = t.skillsRequired?.some((s) => s.toLowerCase().includes(q));
+      if (!titleMatch && !categoryMatch && !companyMatch && !skillsMatch) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  filteredTasks.sort((a, b) => {
+    if (sortBy === "oldest") {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    }
+    if (sortBy === "budget_high") {
+      return (b.budget || 0) - (a.budget || 0);
+    }
+    if (sortBy === "budget_low") {
+      return (a.budget || 0) - (b.budget || 0);
+    }
+    // newest default
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  const activeFilterCount =
+    (selectedCategory !== "all" ? 1 : 0) +
+    (selectedStatus !== "all" ? 1 : 0) +
+    (searchQuery.trim() ? 1 : 0);
 
   if (loading) {
     return (
       <div className="relative min-h-[calc(100vh-4rem)] bg-canvas">
         <div className="pointer-events-none fixed inset-0 bg-grid opacity-50" />
         <div className="relative mx-auto max-w-7xl px-6 py-12 md:py-16">
-          {/* Skeleton header */}
           <div className="mb-8 animate-pulse rounded-3xl border border-border bg-card/85 px-5 py-4 shadow-elegant md:px-6 md:py-5">
             <div className="h-3 w-28 rounded bg-surface-2 mb-4" />
             <div className="h-8 w-48 rounded bg-surface-2 mb-2" />
             <div className="h-4 w-80 rounded bg-surface-2" />
           </div>
 
-          {/* Skeleton cards */}
           <div className="mx-auto max-w-4xl space-y-5">
             {Array.from({ length: 4 }).map((_, i) => (
               <div
@@ -283,15 +326,6 @@ function TaskList() {
                 <div className="flex gap-2 mb-5">
                   <div className="h-6 w-16 rounded-full bg-surface-2" />
                   <div className="h-6 w-14 rounded-full bg-surface-2" />
-                  <div className="h-6 w-18 rounded-full bg-surface-2" />
-                </div>
-                <div className="border-t border-border pt-4 flex items-center justify-between">
-                  <div className="flex gap-6">
-                    <div className="h-4 w-20 rounded bg-surface-2" />
-                    <div className="h-4 w-24 rounded bg-surface-2" />
-                    <div className="h-4 w-16 rounded bg-surface-2" />
-                  </div>
-                  <div className="h-8 w-28 rounded-xl bg-surface-2" />
                 </div>
               </div>
             ))}
@@ -324,17 +358,23 @@ function TaskList() {
             <div className="md:col-span-8">
               <p className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1 text-xs text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                TaskHub Marketplace
+                {isCompany ? "Company Task Management" : "TaskHub Marketplace"}
               </p>
-              <h1 className="mt-3 font-display text-3xl text-ink md:text-4xl">Browse Tasks</h1>
+              <h1 className="mt-3 font-display text-3xl text-ink md:text-4xl">
+                {isCompany ? "My Tasks" : "Browse Tasks"}
+              </h1>
               <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground md:text-base">
-                Discover structured short-term opportunities from companies across different domains.
+                {isCompany
+                  ? "Manage and track all tasks posted by your company."
+                  : "Discover structured short-term opportunities from companies across different domains."}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2.5 md:col-span-4">
               <div className="rounded-2xl border border-border bg-background/80 px-3.5 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.13em] text-muted-foreground">Total available tasks</p>
+                <p className="text-[10px] uppercase tracking-[0.13em] text-muted-foreground">
+                  {isCompany ? "Total Posted Tasks" : "Total Available Tasks"}
+                </p>
                 <p className="mt-0.5 font-display text-xl text-ink md:text-2xl">{tasks.length}</p>
               </div>
               <div className="rounded-2xl border border-border bg-background/80 px-3.5 py-2.5">
@@ -362,7 +402,17 @@ function TaskList() {
                   <span className="text-xs text-muted-foreground transition group-open:rotate-180">⌄</span>
                 </summary>
                 <div className="mt-4 border-t border-border pt-4">
-                  <FilterControls />
+                  <FilterControls
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    selectedCategory={selectedCategory}
+                    setSelectedCategory={setSelectedCategory}
+                    selectedStatus={selectedStatus}
+                    setSelectedStatus={setSelectedStatus}
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                    isCompany={isCompany}
+                  />
                 </div>
               </details>
             </div>
@@ -378,7 +428,17 @@ function TaskList() {
                 <SlidersHorizontal className="h-4 w-4 text-accent" />
                 Filters & Sorting
               </h2>
-              <FilterControls />
+              <FilterControls
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                selectedStatus={selectedStatus}
+                setSelectedStatus={setSelectedStatus}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                isCompany={isCompany}
+              />
             </div>
           </motion.aside>
 
@@ -389,17 +449,16 @@ function TaskList() {
             className="min-w-0"
           >
             <div className="mx-auto max-w-4xl">
-              {/* Result count */}
-              {tasks.length > 0 && (
+              {filteredTasks.length > 0 && (
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Showing <span className="font-medium text-ink">{tasks.length}</span> of{" "}
+                  Showing <span className="font-medium text-ink">{filteredTasks.length}</span> of{" "}
                   <span className="font-medium text-ink">{tasks.length}</span> tasks
                 </p>
               )}
 
-              {tasks.length === 0 ? (
-                /* ── Premium empty state ─────────────────── */
-                <div className="rounded-2xl border border-border bg-card/90 px-8 py-16 text-center shadow-elegant backdrop-blur-sm"
+              {filteredTasks.length === 0 ? (
+                <div
+                  className="rounded-2xl border border-border bg-card/90 px-8 py-16 text-center shadow-elegant backdrop-blur-sm"
                   style={{ backgroundImage: "linear-gradient(135deg, rgba(253,251,246,0.95), rgba(255,255,255,0.85))" }}
                 >
                   <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface border border-border">
@@ -407,13 +466,22 @@ function TaskList() {
                   </div>
                   <h3 className="font-display text-xl text-ink">No Tasks Found</h3>
                   <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
-                    No tasks match your current filters. Try adjusting your search terms or clearing filters.
+                    {isCompany
+                      ? "You haven't posted any tasks matching these filters yet."
+                      : "No tasks match your current filters. Try adjusting your search terms or clearing filters."}
                   </p>
+                  {isCompany && (
+                    <Link
+                      to="/tasks/create"
+                      className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:brightness-110"
+                    >
+                      Create Task
+                    </Link>
+                  )}
                 </div>
               ) : (
-                /* ── Task cards ──────────────────────────── */
                 <div className="space-y-5">
-                  {tasks.map((task, i) => {
+                  {filteredTasks.map((task, i) => {
                     const daysLeft = getDaysLeft(task.applicationDeadline);
                     const urgency = getUrgency(daysLeft);
                     const uStyle = URGENCY_STYLES[urgency];
@@ -440,7 +508,6 @@ function TaskList() {
                         whileHover={{ y: -3 }}
                         className="group relative overflow-hidden rounded-[18px] border border-zinc-200/80 bg-white shadow-[0_10px_26px_rgba(15,23,42,0.07)] transition-all duration-300 hover:shadow-[0_18px_34px_rgba(15,23,42,0.11)]"
                       >
-                        {/* Right-side urgency treatment */}
                         <div
                           className={`pointer-events-none absolute right-0 top-0 bottom-0 w-[11%] min-w-[78px] bg-gradient-to-l ${uStyle.wash} ${uStyle.washHover} opacity-80 transition-opacity duration-300 group-hover:opacity-100`}
                         />
@@ -449,7 +516,6 @@ function TaskList() {
                         />
 
                         <div className="p-6 md:p-6">
-                          {/* ── Top row: Title/Company + Status */}
                           <div className="mb-3 flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1">
                               <h3 className="truncate font-display text-[1.3rem] font-bold leading-snug text-slate-900">
@@ -470,7 +536,6 @@ function TaskList() {
                               </div>
                             </div>
 
-                            {/* Right: status */}
                             <div className="flex shrink-0 flex-col items-end gap-1.5">
                               <span
                                 className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[13px] font-extrabold leading-none ${statusInfo.cls}`}
@@ -480,12 +545,10 @@ function TaskList() {
                             </div>
                           </div>
 
-                          {/* ── Description (clamped) ────────── */}
                           <p className="mb-4 line-clamp-3 text-sm leading-6 text-slate-600">
                             {task.description}
                           </p>
 
-                          {/* ── Skill chips ──────────────────── */}
                           {skills.length > 0 && (
                             <div className="mb-5 flex flex-wrap gap-2">
                               {visibleSkills.map((s) => (
@@ -504,10 +567,8 @@ function TaskList() {
                             </div>
                           )}
 
-                          {/* ── Bottom: Metadata + Deadline + CTA */}
                           <div className="border-t border-zinc-200/70 pt-4">
                             <div className="flex w-full flex-wrap items-stretch divide-x divide-zinc-200/70">
-                              {/* Budget */}
                               <div className="min-w-[130px] flex-1 px-4 py-1.5">
                                 <div className="inline-flex items-center gap-2">
                                   <IndianRupee className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.7} />
@@ -518,7 +579,6 @@ function TaskList() {
                                 </p>
                               </div>
 
-                              {/* Category */}
                               <div className="min-w-[120px] flex-1 px-4 py-1.5">
                                 <div className="inline-flex items-center gap-2">
                                   <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.7} />
@@ -527,7 +587,6 @@ function TaskList() {
                                 <p className="mt-1 text-base font-semibold leading-tight text-slate-900">{task.category || "—"}</p>
                               </div>
 
-                              {/* Duration */}
                               <div className="min-w-[120px] flex-1 px-4 py-1.5">
                                 <div className="inline-flex items-center gap-2">
                                   <Clock className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.7} />
@@ -536,20 +595,6 @@ function TaskList() {
                                 <p className="mt-1 text-base font-semibold leading-tight text-slate-900">{task.duration} Days</p>
                               </div>
 
-                              {/* Applicants */}
-                              {task.applicationCount != null && (
-                                <div className="min-w-[140px] flex-1 px-4 py-1.5">
-                                  <div className="inline-flex items-center gap-2">
-                                    <Users className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.7} />
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Applicants</p>
-                                  </div>
-                                  <p className="mt-1 text-base font-semibold leading-tight text-slate-900">
-                                    {task.applicationCount} Applicant{task.applicationCount !== 1 ? "s" : ""}
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Deadline */}
                               <div className="min-w-[210px] flex-[1.25] px-4 py-1.5">
                                 <span
                                   className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-bold shadow-sm transition-all duration-300 group-hover:brightness-105 ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}
@@ -565,7 +610,6 @@ function TaskList() {
                                 )}
                               </div>
 
-                              {/* View Details button */}
                               <div className="ml-auto flex min-w-[170px] items-center justify-end px-4 py-1.5">
                                 <Link
                                   to={`/tasks/${task._id}`}
