@@ -16,6 +16,7 @@ import {
   MessageSquareX,
 } from "lucide-react";
 import api from "../../api/axios";
+import { useAuth } from "../../context/AuthContext";
 
 /* ── Helpers ───────────────────────────────────────────────── */
 function formatDate(dateStr) {
@@ -124,13 +125,16 @@ function PortfolioSkeleton() {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 function ApplicantPortfolio() {
-  const { userId } = useParams();
+  const { userId: paramUserId } = useParams();
+  const { user } = useAuth();
+  const userId = paramUserId || user?.userId;
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!userId) return;
       try {
         const res = await api.get(`/profiles/${userId}`);
         setProfile(res.data.profile);

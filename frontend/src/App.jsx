@@ -27,6 +27,8 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 
 import TaskApplicants from "./pages/applications/TaskApplicants";
 import CompanyApplicants from "./pages/applications/CompanyApplicants";
+import MyApplications from "./pages/applications/MyApplications";
+import AssignedTasks from "./pages/tasks/AssignedTasks";
 import Profile from "./pages/profile/Profile";
 import ApplicantPortfolio from "./pages/profile/ApplicantPortfolio";
 
@@ -178,10 +180,37 @@ function App() {
             />
 
             <Route
+              path="/portfolio"
+              element={
+                <ProtectedRoute>
+                  <ApplicantPortfolio />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
               path="/portfolio/:userId"
               element={
                 <ProtectedRoute>
                   <ApplicantPortfolio />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/my-assigned-tasks"
+              element={
+                <ProtectedRoute allowedRoles={["individual"]}>
+                  <AssignedTasks />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/my-applications"
+              element={
+                <ProtectedRoute allowedRoles={["individual"]}>
+                  <MyApplications />
                 </ProtectedRoute>
               }
             />

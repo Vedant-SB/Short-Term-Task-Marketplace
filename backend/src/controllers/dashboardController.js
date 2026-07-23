@@ -171,79 +171,97 @@ const getIndividualDashboard = async (req, res) => {
         const userId = req.user.userId;
 
         const [
+            user,
             applicationsSent,
-            acceptedApplications,
-            completedTasks,
+            assignedTasksCount,
+            completedProjects,
             reviewSummary,
-            completedTaskIds,
-            pendingApplications
+            continueWorkingDocs,
+            recentApplicationsDocs,
+            appliedTaskIds
         ] = await Promise.all([
+            User.findById(userId).select("name email skills"),
+
             Application.countDocuments({
                 applicantId: userId
             }),
-            Application.countDocuments({
-                applicantId: userId,
-                status: "accepted"
+
+            Task.countDocuments({
+                selectedApplicant: userId,
+                status: { $in: ["in_progress", "under_review", "revision_requested"] }
             }),
+
             Task.countDocuments({
                 selectedApplicant: userId,
                 status: "completed"
             }),
+
             getUserReviewSummary(userId),
+
             Task.find({
                 selectedApplicant: userId,
-                status: "completed"
-            }).select("_id"),
-            Application.countDocuments({
+                status: { $in: ["in_progress", "under_review", "revision_requested"] }
+            })
+                .populate("postedBy", "companyName")
+                .sort({ currentDeadline: 1 })
+                .limit(3)
+                .lean(),
+
+            Application.find({
+                applicantId: userId
+            })
+                .populate({
+                    path: "taskId",
+                    select: "title category budget duration status currentDeadline applicationDeadline postedBy",
+                    populate: { path: "postedBy", select: "companyName" }
+                })
+                .sort({ appliedAt: -1 })
+                .limit(5)
+                .lean(),
+
+            Application.distinct("taskId", {
                 applicantId: userId,
-                status: "pending"
+                status: { $ne: "withdrawn" }
             })
         ]);
 
-        const reviewMap =
-            await getTaskReviewStatusMap(
-                completedTaskIds.map(task => task._id)
-            );
+        // Recommended tasks (open, not applied to, sorted by skill match)
+        const openTasksDocs = await Task.find({
+            status: "open",
+            applicationDeadline: { $gt: new Date() },
+            _id: { $nin: appliedTaskIds }
+        })
+            .populate("postedBy", "companyName")
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .lean();
 
-        const pendingReviews =
-            completedTaskIds.filter((task) => {
-                const status =
-                    buildReviewStatus(
-                        reviewMap.get(
-                            task._id.toString()
-                        ) || []
-                    );
+        const userSkills = (user?.skills || []).map(s => String(s).toLowerCase());
 
-                return status.companyReviewSubmitted &&
-                    !status.individualReviewSubmitted;
-            }).length;
+        openTasksDocs.sort((a, b) => {
+            const matchA = (a.skillsRequired || []).filter(s => userSkills.includes(String(s).toLowerCase())).length;
+            const matchB = (b.skillsRequired || []).filter(s => userSkills.includes(String(s).toLowerCase())).length;
+            return matchB - matchA;
+        });
 
-        const completedReviews =
-            completedTaskIds.filter((task) => {
-                const status =
-                    buildReviewStatus(
-                        reviewMap.get(
-                            task._id.toString()
-                        ) || []
-                    );
+        const recommendedTasks = openTasksDocs.slice(0, 3);
 
-                return status.individualReviewSubmitted;
-            }).length;
+        const studentName = user?.name || user?.email?.split("@")[0] || "Student";
 
         res.status(200).json({
             success: true,
             dashboard: {
-                applicationsSent,
-                pendingApplications,
-                acceptedApplications,
-                completedTasks,
-                portfolioProjects: completedTasks,
-                averageRating:
-                    reviewSummary.averageRating,
-                reviewCount:
-                    reviewSummary.reviewCount,
-                pendingReviews,
-                completedReviews
+                studentName,
+                statistics: {
+                    applicationsSent,
+                    assignedTasks: assignedTasksCount,
+                    completedProjects,
+                    averageRating: reviewSummary.averageRating,
+                    reviewCount: reviewSummary.reviewCount
+                },
+                continueWorking: continueWorkingDocs,
+                recentApplications: recentApplicationsDocs,
+                recommendedTasks
             }
         });
 

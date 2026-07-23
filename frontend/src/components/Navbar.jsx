@@ -40,7 +40,7 @@ function Navbar() {
     },
     ...(user?.role === "company"
       ? [{ label: "Applicants", to: "/company-applicants" }]
-      : []),
+      : [{ label: "Portfolio", to: "/portfolio" }]),
     { label: "Profile", to: "/profile" },
   ];
 
