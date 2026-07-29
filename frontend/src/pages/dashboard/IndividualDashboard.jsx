@@ -22,25 +22,26 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import api from "../../api/axios";
-
-/* ── Status badge styling ──────────────────────────────────── */
-const STATUS_BADGE = {
-  open: { label: "Open", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
-  in_progress: { label: "In Progress", cls: "bg-sky-50 text-sky-700 border-sky-300" },
-  under_review: { label: "Under Review", cls: "bg-amber-50 text-amber-700 border-amber-300" },
-  completed: { label: "Completed", cls: "bg-gray-100 text-gray-500 border-gray-300" },
-  revision_requested: { label: "Revision Requested", cls: "bg-amber-100 text-amber-800 border-amber-300" },
-  closed: { label: "Closed", cls: "bg-gray-100 text-gray-400 border-gray-300" },
-};
-
-const APPLICATION_STATUS_BADGE = {
-  pending: { label: "Pending", cls: "bg-amber-100 text-amber-800 border-amber-300" },
-  under_review: { label: "Under Review", cls: "bg-sky-100 text-sky-800 border-sky-300" },
-  accepted: { label: "Selected", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
-  selected: { label: "Selected", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
-  rejected: { label: "Rejected", cls: "bg-rose-100 text-rose-800 border-rose-300" },
-  withdrawn: { label: "Withdrawn", cls: "bg-gray-100 text-gray-500 border-gray-300" },
-};
+import {
+  PageHeader,
+  SectionHeader,
+  SectionCard,
+  StatCard,
+  StatusBadge,
+  EmptyState,
+  DashboardSkeleton,
+  PrimaryButton,
+  SecondaryButton,
+  Button,
+  DangerButton,
+  TableContainer,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../../components/ui";
 
 /* ── Category Icon Helpers ──────────────────────────────────── */
 function getCategoryIcon(category) {
@@ -103,72 +104,6 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease } },
 };
 
-/* ── Skeleton Loader ───────────────────────────────────────── */
-function DashboardSkeleton() {
-  const shimmer = "animate-pulse bg-surface-2 rounded";
-  return (
-    <div className="relative min-h-[calc(100vh-4rem)] bg-canvas">
-      <div className="pointer-events-none fixed inset-0 bg-grid opacity-40" />
-      <div className="relative mx-auto w-[94%] max-w-[1400px] py-10 md:py-14">
-        {/* Hero skeleton */}
-        <div className="mb-8 rounded-2xl border border-border bg-card/85 p-6 shadow-sm md:p-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex-1 space-y-3">
-              <div className={`h-8 w-72 ${shimmer}`} />
-              <div className={`h-4 w-96 max-w-full ${shimmer}`} />
-            </div>
-            <div className="flex gap-3">
-              <div className={`h-11 w-36 rounded-xl ${shimmer}`} />
-              <div className={`h-11 w-40 rounded-xl ${shimmer}`} />
-            </div>
-          </div>
-        </div>
-
-        {/* Stat cards skeleton */}
-        <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4 lg:gap-5">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <div className={`mb-3 h-10 w-10 rounded-xl ${shimmer}`} />
-              <div className={`mb-2 h-8 w-16 ${shimmer}`} />
-              <div className={`h-3 w-24 ${shimmer}`} />
-            </div>
-          ))}
-        </div>
-
-        {/* Continue working skeleton */}
-        <div className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <div className={`mb-5 h-6 w-40 ${shimmer}`} />
-          <div className="space-y-4">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="h-24 w-full rounded-xl bg-surface-2 animate-pulse" />
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom grid skeleton */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[55%_1fr]">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className={`mb-5 h-6 w-40 ${shimmer}`} />
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-12 w-full rounded-lg bg-surface-2 animate-pulse" />
-              ))}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className={`mb-5 h-6 w-40 ${shimmer}`} />
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-20 w-full rounded-xl bg-surface-2 animate-pulse" />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /*  INDIVIDUAL DASHBOARD                                        */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -223,12 +158,12 @@ function IndividualDashboard() {
           </div>
           <h2 className="font-display text-xl text-ink">Something went wrong</h2>
           <p className="mt-2 text-sm text-muted-foreground">{error}</p>
-          <button
+          <PrimaryButton
             onClick={() => window.location.reload()}
-            className="mt-6 rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:brightness-110 cursor-pointer"
+            className="mt-6"
           >
             Try Again
-          </button>
+          </PrimaryButton>
         </div>
       </div>
     );
@@ -292,48 +227,35 @@ function IndividualDashboard() {
       <div className="pointer-events-none fixed inset-0 bg-grid opacity-40" />
 
       <div className="relative mx-auto w-[94%] max-w-[1400px] py-8 md:py-12">
-
         {/* ═══════════════════════════════════════════════════════ */}
         {/*  HERO SECTION                                         */}
         {/* ═══════════════════════════════════════════════════════ */}
-        <motion.section
+        <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease }}
-          className="mb-8 rounded-2xl border border-border bg-card/90 px-6 py-6 shadow-sm backdrop-blur-sm md:px-8 md:py-8"
-          style={{
-            backgroundImage:
-              "linear-gradient(120deg, rgba(253,251,246,0.92), rgba(255,255,255,0.82))",
-          }}
         >
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="font-display text-2xl text-ink md:text-3xl lg:text-[2rem]">
-                Welcome back, {studentName}
-              </h1>
-              <p className="mt-1.5 text-sm text-muted-foreground md:text-base">
-                Track your applications, complete assigned work, and grow your verified TaskHub portfolio.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Link
-                to="/tasks"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elegant hover:brightness-110"
-              >
-                <Search className="h-4 w-4" />
-                Browse Tasks
-              </Link>
-              <Link
-                to="/portfolio"
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-ink shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface hover:shadow-elegant"
-              >
-                <Briefcase className="h-4 w-4" />
-                My Portfolio
-              </Link>
-            </div>
-          </div>
-        </motion.section>
+          <PageHeader
+            title={`Welcome back, ${studentName}`}
+            description="Track your applications, complete assigned work, and grow your verified TaskHub portfolio."
+            actions={
+              <>
+                <Link to="/tasks">
+                  <PrimaryButton>
+                    <Search className="h-4 w-4" />
+                    Browse Tasks
+                  </PrimaryButton>
+                </Link>
+                <Link to="/portfolio">
+                  <SecondaryButton>
+                    <Briefcase className="h-4 w-4" />
+                    My Portfolio
+                  </SecondaryButton>
+                </Link>
+              </>
+            }
+          />
+        </motion.div>
 
         {/* ═══════════════════════════════════════════════════════ */}
         {/*  STATISTICS SECTION                                   */}
@@ -349,44 +271,17 @@ function IndividualDashboard() {
               key={card.title}
               variants={fadeUp}
               whileHover={{ y: -3 }}
-              className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elegant"
             >
-              <div
-                className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ${card.iconBg}`}
-              >
-                <card.icon className={`h-5 w-5 ${card.iconColor}`} strokeWidth={1.8} />
-              </div>
-
-              <p className="font-display text-3xl font-bold text-ink">
-                {card.value}
-              </p>
-
-              {card.isRating ? (
-                card.reviewCount > 0 ? (
-                  <div className="mt-1">
-                    <div className="flex items-center gap-0.5">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-3.5 w-3.5 ${
-                            i < Math.round(Number(card.value))
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-gray-300"
-                          }`}
-                          strokeWidth={1.5}
-                        />
-                      ))}
-                    </div>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Based on {card.reviewCount} verified review{card.reviewCount !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="mt-1 text-[13px] text-muted-foreground">No reviews yet</p>
-                )
-              ) : (
-                <p className="mt-0.5 text-[13px] text-muted-foreground">{card.subtitle}</p>
-              )}
+              <StatCard
+                title={card.title}
+                subtitle={card.subtitle}
+                value={card.value}
+                icon={card.icon}
+                iconBg={card.iconBg}
+                iconColor={card.iconColor}
+                isRating={card.isRating}
+                reviewCount={card.reviewCount}
+              />
             </motion.div>
           ))}
         </motion.section>
@@ -394,264 +289,261 @@ function IndividualDashboard() {
         {/* ═══════════════════════════════════════════════════════ */}
         {/*  CONTINUE WORKING SECTION                             */}
         {/* ═══════════════════════════════════════════════════════ */}
-        <motion.section
+        <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.2, ease }}
-          className="mb-8 rounded-2xl border border-border bg-card shadow-sm"
+          className="mb-8"
         >
-          <div className="flex items-center justify-between border-b border-border/60 px-6 py-4 md:px-8">
-            <div>
-              <h2 className="font-display text-lg text-ink font-bold">Continue Working</h2>
-              <p className="text-xs text-muted-foreground">
-                {continueWorking && continueWorking.length > 0
-                  ? `You have ${continueWorking.length} active task${
-                      continueWorking.length !== 1 ? "s" : ""
-                    } in progress.`
-                  : "No active assigned tasks."}
-              </p>
-            </div>
-            <Link
-              to="/my-assigned-tasks"
-              className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
+          <SectionCard>
+            <SectionHeader
+              action={
+                <Link
+                  to="/my-assigned-tasks"
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
+                >
+                  View All Assigned Tasks
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              }
             >
-              View All Assigned Tasks
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          {!continueWorking || continueWorking.length === 0 ? (
-            <div className="px-6 py-12 text-center md:px-8">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface border border-border">
-                <Briefcase className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
+              <div>
+                <h2 className="font-display text-lg text-ink font-bold">
+                  Continue Working
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {continueWorking && continueWorking.length > 0
+                    ? `You have ${continueWorking.length} active task${
+                        continueWorking.length !== 1 ? "s" : ""
+                      } in progress.`
+                    : "No active assigned tasks."}
+                </p>
               </div>
-              <p className="text-sm font-medium text-ink">You don't have any active assigned tasks.</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Apply for open tasks on the marketplace to start working.
-              </p>
-              <Link
-                to="/tasks"
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110"
-              >
-                <Search className="h-4 w-4" />
-                Browse Tasks
-              </Link>
-            </div>
-          ) : (
-            <div className="divide-y divide-border/40">
-              {continueWorking.map((task) => {
-                const companyName = task.postedBy?.companyName || "Company";
-                const daysLeft = getDaysLeft(task.currentDeadline);
-                const statusBadge = STATUS_BADGE[task.status] || STATUS_BADGE.in_progress;
+            </SectionHeader>
 
-                return (
-                  <div
-                    key={task._id}
-                    className="flex flex-col gap-4 px-6 py-5.5 transition-colors duration-150 hover:bg-surface/40 md:flex-row md:items-center md:justify-between md:px-8"
-                  >
-                    {/* Left: Avatar + Title & Company */}
-                    <div className="flex items-center gap-4 min-w-[280px] flex-1">
-                      <div
-                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-bold text-base shadow-sm ${getCompanyBadgeColor(
-                          companyName
-                        )}`}
-                      >
-                        {getCompanyInitial(companyName)}
-                      </div>
+            {!continueWorking || continueWorking.length === 0 ? (
+              <EmptyState
+                icon={Briefcase}
+                title="You don't have any active assigned tasks."
+                description="Apply for open tasks on the marketplace to start working."
+                button={
+                  <Link to="/tasks">
+                    <PrimaryButton className="mt-1">
+                      <Search className="h-4 w-4" />
+                      Browse Tasks
+                    </PrimaryButton>
+                  </Link>
+                }
+              />
+            ) : (
+              <div className="divide-y divide-border/40">
+                {continueWorking.map((task) => {
+                  const companyName = task.postedBy?.companyName || "Company";
+                  const daysLeft = getDaysLeft(task.currentDeadline);
 
-                      <div className="min-w-0 space-y-0.5">
-                        <h3 className="font-display font-bold text-ink text-lg md:text-[1.15rem] leading-snug line-clamp-1">
-                          {task.title}
-                        </h3>
-                        <p className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
-                          {companyName}
-                          <BadgeCheck className="h-4 w-4 fill-blue-600 text-white" />
-                        </p>
-                      </div>
-                    </div>
+                  return (
+                    <div
+                      key={task._id}
+                      className="flex flex-col gap-4 px-6 py-5.5 transition-colors duration-150 hover:bg-surface/40 md:flex-row md:items-center md:justify-between md:px-8"
+                    >
+                      {/* Left: Avatar + Title & Company */}
+                      <div className="flex items-center gap-4 min-w-[280px] flex-1">
+                        <div
+                          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-bold text-base shadow-sm ${getCompanyBadgeColor(
+                            companyName
+                          )}`}
+                        >
+                          {getCompanyInitial(companyName)}
+                        </div>
 
-                    {/* Middle Metadata */}
-                    <div className="flex flex-wrap items-center gap-x-7 gap-y-2 text-sm text-ink">
-                      {/* Budget */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Budget
-                        </p>
-                        <p className="font-display font-bold text-ink text-base md:text-lg">
-                          ₹{task.budget?.toLocaleString("en-IN") ?? 0}
-                        </p>
-                      </div>
-
-                      {/* Assigned On */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Assigned On
-                        </p>
-                        <p className="text-xs md:text-sm font-medium text-muted-foreground">
-                          {formatDate(task.taskStartDate || task.createdAt)}
-                        </p>
-                      </div>
-
-                      {/* Deadline */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Deadline
-                        </p>
-                        <p className="text-xs md:text-sm font-semibold text-ink">{formatDate(task.currentDeadline)}</p>
-                        {daysLeft !== null && (
-                          <p
-                            className={`text-xs md:text-sm font-bold ${
-                              daysLeft <= 2
-                                ? "text-red-500"
-                                : daysLeft <= 5
-                                ? "text-amber-600"
-                                : "text-emerald-600"
-                            }`}
-                          >
-                            {daysLeft <= 0 ? "Due today" : `${daysLeft} days left`}
+                        <div className="min-w-0 space-y-0.5">
+                          <h3 className="font-display font-bold text-ink text-lg md:text-[1.15rem] leading-snug line-clamp-1">
+                            {task.title}
+                          </h3>
+                          <p className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+                            {companyName}
+                            <BadgeCheck className="h-4 w-4 fill-blue-600 text-white" />
                           </p>
-                        )}
+                        </div>
                       </div>
 
-                      {/* Status */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Status
-                        </p>
-                        <span
-                          className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusBadge.cls}`}
-                        >
-                          {statusBadge.label}
-                        </span>
+                      {/* Middle Metadata */}
+                      <div className="flex flex-wrap items-center gap-x-7 gap-y-2 text-sm text-ink">
+                        {/* Budget */}
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Budget
+                          </p>
+                          <p className="font-display font-bold text-ink text-base md:text-lg">
+                            ₹{task.budget?.toLocaleString("en-IN") ?? 0}
+                          </p>
+                        </div>
+
+                        {/* Assigned On */}
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Assigned On
+                          </p>
+                          <p className="text-xs md:text-sm font-medium text-muted-foreground">
+                            {formatDate(task.taskStartDate || task.createdAt)}
+                          </p>
+                        </div>
+
+                        {/* Deadline */}
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Deadline
+                          </p>
+                          <p className="text-xs md:text-sm font-semibold text-ink">
+                            {formatDate(task.currentDeadline)}
+                          </p>
+                          {daysLeft !== null && (
+                            <p
+                              className={`text-xs md:text-sm font-bold ${
+                                daysLeft <= 2
+                                  ? "text-red-500"
+                                  : daysLeft <= 5
+                                  ? "text-amber-600"
+                                  : "text-emerald-600"
+                              }`}
+                            >
+                              {daysLeft <= 0 ? "Due today" : `${daysLeft} days left`}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Status */}
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Status
+                          </p>
+                          <StatusBadge status={task.status} />
+                        </div>
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div className="flex items-center gap-3 pt-2 md:pt-0 shrink-0">
+                        <Link to={`/tasks/${task._id}`}>
+                          <Button variant="secondary" size="sm">
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </Button>
+                        </Link>
+
+                        {task.status === "revision_requested" ? (
+                          <Link to={`/tasks/${task._id}/submit`}>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              className="bg-amber-600 hover:bg-amber-700 text-white"
+                            >
+                              Resubmit Work
+                            </Button>
+                          </Link>
+                        ) : task.status === "in_progress" ? (
+                          <Link to={`/tasks/${task._id}/submit`}>
+                            <PrimaryButton size="sm">
+                              Submit Work
+                            </PrimaryButton>
+                          </Link>
+                        ) : null}
                       </div>
                     </div>
-
-                    {/* Right: Actions */}
-                    <div className="flex items-center gap-3 pt-2 md:pt-0 shrink-0">
-                      <Link
-                        to={`/tasks/${task._id}`}
-                        className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4.5 py-2.5 text-xs md:text-sm font-semibold text-ink shadow-sm transition-all duration-150 hover:bg-surface hover:shadow"
-                      >
-                        <Eye className="h-4 w-4" />
-                        View Details
-                      </Link>
-
-                      {task.status === "revision_requested" ? (
-                        <Link
-                          to={`/tasks/${task._id}/submit`}
-                          className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-xs md:text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-amber-700"
-                        >
-                          Resubmit Work
-                        </Link>
-                      ) : task.status === "in_progress" ? (
-                        <Link
-                          to={`/tasks/${task._id}/submit`}
-                          className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs md:text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-150 hover:brightness-110"
-                        >
-                          Submit Work
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </motion.section>
+                  );
+                })}
+              </div>
+            )}
+          </SectionCard>
+        </motion.div>
 
         {/* ═══════════════════════════════════════════════════════ */}
         {/*  BOTTOM GRID: Applications | Recommendations          */}
         {/* ═══════════════════════════════════════════════════════ */}
-        <motion.section
+        <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.3, ease }}
           className="grid grid-cols-1 gap-6 lg:grid-cols-[55%_1fr]"
         >
           {/* ── My Applications ────────────────────────────────── */}
-          <div className="rounded-2xl border border-border bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
-              <h2 className="font-display text-lg text-ink font-bold">My Applications</h2>
-              <Link
-                to="/my-applications"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
-              >
-                View All Applications
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+          <SectionCard>
+            <SectionHeader
+              action={
+                <Link
+                  to="/my-applications"
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
+                >
+                  View All Applications
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              }
+            >
+              <h2 className="font-display text-lg text-ink font-bold">
+                My Applications
+              </h2>
+            </SectionHeader>
 
             {!recentApplications || recentApplications.length === 0 ? (
-              <div className="px-6 py-10 text-center">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-surface border border-border">
-                  <Send className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
-                </div>
-                <p className="text-sm font-medium text-ink">You haven't applied to any tasks yet.</p>
-                <Link
-                  to="/tasks"
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110"
-                >
-                  Browse Tasks
-                </Link>
-              </div>
+              <EmptyState
+                icon={Send}
+                title="You haven't applied to any tasks yet."
+                button={
+                  <Link to="/tasks">
+                    <PrimaryButton className="mt-2">
+                      Browse Tasks
+                    </PrimaryButton>
+                  </Link>
+                }
+              />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[500px]">
-                  <thead>
+              <TableContainer>
+                <Table minWidth="min-w-[500px]">
+                  <TableHeader>
                     <tr className="border-b border-border/40">
-                      <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <TableHead className="px-6 py-3.5 text-xs font-bold">
                         Task
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      </TableHead>
+                      <TableHead className="px-4 py-3.5 text-xs font-bold">
                         Company
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      </TableHead>
+                      <TableHead className="px-4 py-3.5 text-xs font-bold">
                         Applied On
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      </TableHead>
+                      <TableHead className="px-4 py-3.5 text-xs font-bold">
                         Status
-                      </th>
-                      <th className="px-4 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      </TableHead>
+                      <TableHead align="center" className="px-4 py-3.5 text-xs font-bold">
                         Action
-                      </th>
+                      </TableHead>
                     </tr>
-                  </thead>
-                  <tbody>
+                  </TableHeader>
+                  <TableBody>
                     {recentApplications.map((app) => {
                       const task = app.taskId;
                       const companyName = task?.postedBy?.companyName || "Company";
-                      const statusBadge =
-                        APPLICATION_STATUS_BADGE[app.status] || APPLICATION_STATUS_BADGE.pending;
 
                       return (
-                        <tr
-                          key={app._id}
-                          className="border-b border-border/30 transition-colors duration-150 last:border-0 hover:bg-surface/50"
-                        >
-                          <td className="px-6 py-4">
+                        <TableRow key={app._id}>
+                          <TableCell className="px-6 py-4">
                             <span className="font-display font-bold text-ink text-sm md:text-base line-clamp-1 max-w-[180px]">
                               {task?.title || "Task"}
                             </span>
-                          </td>
-                          <td className="px-4 py-4">
+                          </TableCell>
+                          <TableCell className="px-4 py-4">
                             <span className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
                               {companyName}
                               <BadgeCheck className="h-3.5 w-3.5 fill-blue-600 text-white" />
                             </span>
-                          </td>
-                          <td className="px-4 py-4">
+                          </TableCell>
+                          <TableCell className="px-4 py-4">
                             <span className="text-xs md:text-sm font-medium text-muted-foreground">
                               {formatDate(app.appliedAt)}
                             </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span
-                              className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusBadge.cls}`}
-                            >
-                              {statusBadge.label}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-center">
+                          </TableCell>
+                          <TableCell className="px-4 py-4">
+                            <StatusBadge status={app.status} />
+                          </TableCell>
+                          <TableCell align="center" className="px-4 py-4">
                             {app.status === "pending" ? (
                               <button
                                 onClick={() => handleWithdraw(app._id)}
@@ -670,39 +562,40 @@ function IndividualDashboard() {
                             ) : (
                               <span className="text-sm text-muted-foreground">—</span>
                             )}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
+                  </TableBody>
+                </Table>
+              </TableContainer>
             )}
-          </div>
+          </SectionCard>
 
           {/* ── Recommended Tasks ─────────────────────────────── */}
-          <div className="rounded-2xl border border-border bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
-              <h2 className="font-display text-lg text-ink font-bold">Recommended Tasks</h2>
-              <Link
-                to="/tasks"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
-              >
-                View All Tasks
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+          <SectionCard>
+            <SectionHeader
+              action={
+                <Link
+                  to="/tasks"
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
+                >
+                  View All Tasks
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              }
+            >
+              <h2 className="font-display text-lg text-ink font-bold">
+                Recommended Tasks
+              </h2>
+            </SectionHeader>
 
             {!recommendedTasks || recommendedTasks.length === 0 ? (
-              <div className="px-6 py-10 text-center">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-surface border border-border">
-                  <FolderX className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
-                </div>
-                <p className="text-sm font-medium text-ink">No recommendations available yet.</p>
-                <p className="mt-1 text-xs text-muted-foreground max-w-xs mx-auto">
-                  Update your profile and skills to receive better recommendations.
-                </p>
-              </div>
+              <EmptyState
+                icon={FolderX}
+                title="No recommendations available yet."
+                description="Update your profile and skills to receive better recommendations."
+              />
             ) : (
               <div className="divide-y divide-border/40">
                 {recommendedTasks.map((task) => {
@@ -744,30 +637,32 @@ function IndividualDashboard() {
                             <p className="font-display font-bold text-ink text-base md:text-lg">
                               ₹{task.budget?.toLocaleString("en-IN") ?? 0}
                             </p>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Budget</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                              Budget
+                            </p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs md:text-sm font-semibold text-ink">
                               {formatDate(task.applicationDeadline)}
                             </p>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Deadline</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                              Deadline
+                            </p>
                           </div>
                         </div>
                       </div>
 
                       {/* Action buttons */}
                       <div className="mt-4 flex items-center justify-end gap-3 border-t border-border/30 pt-3">
-                        <Link
-                          to={`/tasks/${task._id}`}
-                          className="inline-flex items-center rounded-xl border border-border bg-card px-4.5 py-2 text-xs md:text-sm font-semibold text-ink hover:bg-surface shadow-sm"
-                        >
-                          View Details
+                        <Link to={`/tasks/${task._id}`}>
+                          <SecondaryButton size="sm">
+                            View Details
+                          </SecondaryButton>
                         </Link>
-                        <Link
-                          to={`/tasks/${task._id}`}
-                          className="inline-flex items-center rounded-xl bg-primary px-5 py-2 text-xs md:text-sm font-semibold text-primary-foreground hover:brightness-110 shadow-sm"
-                        >
-                          Apply
+                        <Link to={`/tasks/${task._id}`}>
+                          <PrimaryButton size="sm">
+                            Apply
+                          </PrimaryButton>
                         </Link>
                       </div>
                     </div>
@@ -775,8 +670,8 @@ function IndividualDashboard() {
                 })}
               </div>
             )}
-          </div>
-        </motion.section>
+          </SectionCard>
+        </motion.div>
 
         {/* ═══════════════════════════════════════════════════════ */}
         {/*  BOTTOM TIP BANNER                                    */}
@@ -794,7 +689,6 @@ function IndividualDashboard() {
             Complete tasks, earn great reviews, and build your verified portfolio to unlock more opportunities!
           </p>
         </motion.div>
-
       </div>
     </div>
   );
