@@ -28,3 +28,4 @@ export { TextAreaField } from "./TextAreaField";
 export { SelectField } from "./SelectField";
 export { DateField } from "./DateField";
 export { Divider } from "./Divider";
+export { default as ConfirmDialog } from "./ConfirmDialog";

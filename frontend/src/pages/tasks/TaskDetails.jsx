@@ -31,6 +31,7 @@ import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 import { ELIGIBLE_LABELS } from "./taskFormConstants";
 import WithdrawDialog from "../../components/WithdrawDialog";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 
 /* ── Helpers ────────────────────────────────────────────── */
 
@@ -242,6 +243,7 @@ function TaskDetails() {
   const [applying, setApplying] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [extendingDeadline, setExtendingDeadline] = useState(false);
   const [customExtensionDays, setCustomExtensionDays] = useState("");
@@ -309,11 +311,13 @@ function TaskDetails() {
     }
   };
 
-  const handleDelete = async () => {
-    const confirmed = window.confirm(
-      "Delete this task?\n\nThis action cannot be undone."
-    );
-    if (!confirmed || deleting) return;
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteDialog(false);
+    if (deleting) return;
     setDeleting(true);
     setMessage("");
     try {
@@ -1475,6 +1479,19 @@ function TaskDetails() {
         open={showWithdrawDialog}
         onClose={() => setShowWithdrawDialog(false)}
         onConfirm={handleConfirmWithdraw}
+      />
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Task?"
+        message="Are you sure you want to delete this task? This action cannot be undone."
+        confirmLabel="Yes, Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        icon={Trash2}
       />
     </div>
   );

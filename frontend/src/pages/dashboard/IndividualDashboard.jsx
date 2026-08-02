@@ -42,6 +42,7 @@ import {
   TableHead,
   TableCell,
 } from "../../components/ui";
+import WithdrawDialog from "../../components/WithdrawDialog";
 
 /* ── Category Icon Helpers ──────────────────────────────────── */
 function getCategoryIcon(category) {
@@ -114,6 +115,7 @@ function IndividualDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [withdrawingId, setWithdrawingId] = useState(null);
+  const [withdrawTarget, setWithdrawTarget] = useState(null);
 
   const fetchDashboard = async () => {
     try {
@@ -131,16 +133,21 @@ function IndividualDashboard() {
     fetchDashboard();
   }, []);
 
-  const handleWithdraw = async (applicationId) => {
-    const confirmed = window.confirm("Withdraw this application?");
-    if (!confirmed || withdrawingId) return;
+  const handleWithdraw = (applicationId) => {
+    setWithdrawTarget(applicationId);
+  };
+
+  const confirmWithdraw = async () => {
+    const applicationId = withdrawTarget;
+    setWithdrawTarget(null);
+    if (!applicationId || withdrawingId) return;
 
     setWithdrawingId(applicationId);
     try {
       await api.put(`/applications/${applicationId}/withdraw`);
       await fetchDashboard();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to withdraw application");
+      console.error(err.response?.data?.message || "Failed to withdraw application");
     } finally {
       setWithdrawingId(null);
     }
@@ -223,6 +230,7 @@ function IndividualDashboard() {
   ];
 
   return (
+    <>
     <div className="relative min-h-[calc(100vh-4rem)] bg-canvas">
       <div className="pointer-events-none fixed inset-0 bg-grid opacity-40" />
 
@@ -691,7 +699,13 @@ function IndividualDashboard() {
         </motion.div>
       </div>
     </div>
-  );
+
+    <WithdrawDialog
+      open={!!withdrawTarget}
+      onClose={() => setWithdrawTarget(null)}
+      onConfirm={confirmWithdraw}
+    />
+  </>);
 }
 
 export default IndividualDashboard;

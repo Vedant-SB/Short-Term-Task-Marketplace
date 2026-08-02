@@ -8,6 +8,7 @@ import {
   FolderX,
 } from "lucide-react";
 import api from "../../api/axios";
+import WithdrawDialog from "../../components/WithdrawDialog";
 
 const APPLICATION_STATUS_BADGE = {
   pending: { label: "Pending", cls: "bg-amber-100 text-amber-800 border-amber-300" },
@@ -33,6 +34,8 @@ function MyApplications() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [withdrawingId, setWithdrawingId] = useState(null);
+  const [withdrawTarget, setWithdrawTarget] = useState(null);
+  const [withdrawError, setWithdrawError] = useState("");
 
   const fetchApplications = async () => {
     try {
@@ -49,16 +52,22 @@ function MyApplications() {
     fetchApplications();
   }, []);
 
-  const handleWithdraw = async (applicationId) => {
-    const confirmed = window.confirm("Withdraw this application?");
-    if (!confirmed || withdrawingId) return;
+  const handleWithdraw = (applicationId) => {
+    setWithdrawTarget(applicationId);
+  };
+
+  const confirmWithdraw = async () => {
+    const applicationId = withdrawTarget;
+    setWithdrawTarget(null);
+    if (!applicationId || withdrawingId) return;
 
     setWithdrawingId(applicationId);
+    setWithdrawError("");
     try {
       await api.put(`/applications/${applicationId}/withdraw`);
       await fetchApplications();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to withdraw application");
+      setWithdrawError(err.response?.data?.message || "Failed to withdraw application");
     } finally {
       setWithdrawingId(null);
     }
@@ -258,7 +267,20 @@ function MyApplications() {
             </div>
           )}
         </div>
+
+        {/* Withdraw error */}
+        {withdrawError && (
+          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {withdrawError}
+          </div>
+        )}
       </div>
+
+      <WithdrawDialog
+        open={!!withdrawTarget}
+        onClose={() => setWithdrawTarget(null)}
+        onConfirm={confirmWithdraw}
+      />
     </div>
   );
 }
