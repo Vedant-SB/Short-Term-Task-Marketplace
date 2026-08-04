@@ -13,7 +13,7 @@ export default function WithdrawDialog({ open, onClose, onConfirm }) {
       onClose={onClose}
       onConfirm={onConfirm}
       icon={AlertTriangle}
-      variant="warning"
+      variant="danger"
       title="Withdraw Application?"
       message="Are you sure you want to withdraw your application? This action cannot be undone."
       cancelLabel="No"

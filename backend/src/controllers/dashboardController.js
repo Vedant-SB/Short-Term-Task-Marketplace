@@ -50,9 +50,20 @@ const getCompanyDashboard = async (req, res) => {
         );
 
         // ── Applications count ──────────────────────────────────
-        const applicationsReceived = taskIds.length > 0
+        // Count active applications (exclude rejected, withdrawn, expired, completed)
+        const activeCompanyTasks = await Task.find({
+            postedBy: companyId,
+            status: { $in: ["open", "in_progress", "under_review", "revision_requested"] }
+        }).select("_id status applicationDeadline");
+
+        const activeTaskIds = activeCompanyTasks
+            .filter(t => t.status !== "open" || !t.applicationDeadline || new Date(t.applicationDeadline) > new Date())
+            .map(t => t._id);
+
+        const applicationsReceived = activeTaskIds.length > 0
             ? await Application.countDocuments({
-                taskId: { $in: taskIds }
+                taskId: { $in: activeTaskIds },
+                status: { $nin: ["rejected", "withdrawn", "completed"] }
             })
             : 0;
 
@@ -248,6 +259,25 @@ const getIndividualDashboard = async (req, res) => {
 
         const studentName = user?.name || user?.email?.split("@")[0] || "Student";
 
+        const taskIdsForReview = recentApplicationsDocs
+            .map(app => app.taskId?._id)
+            .filter(Boolean);
+
+        const reviewMap = await getTaskReviewStatusMap(taskIdsForReview);
+
+        const recentApplicationsWithReviews = recentApplicationsDocs.map(app => {
+            if (!app.taskId) return app;
+            const reviews = reviewMap.get(app.taskId._id.toString()) || [];
+            const reviewStatus = buildReviewStatus(reviews);
+            return {
+                ...app,
+                taskId: {
+                    ...app.taskId,
+                    reviewStatus
+                }
+            };
+        });
+
         res.status(200).json({
             success: true,
             dashboard: {
@@ -260,7 +290,7 @@ const getIndividualDashboard = async (req, res) => {
                     reviewCount: reviewSummary.reviewCount
                 },
                 continueWorking: continueWorkingDocs,
-                recentApplications: recentApplicationsDocs,
+                recentApplications: recentApplicationsWithReviews,
                 recommendedTasks
             }
         });

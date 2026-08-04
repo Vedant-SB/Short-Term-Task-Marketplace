@@ -100,14 +100,20 @@ function EditTask() {
         const response = await api.get(`/tasks/${id}`);
         const task = response.data.task;
 
+        if (task.selectedApplicant) {
+          setError("Editing disabled — An applicant has already been accepted for this task.");
+          setLoading(false);
+          return;
+        }
+
         if (task.status !== "open") {
-          setError("Can only edit open tasks");
+          setError(`Editing disabled — Cannot edit task in '${task.status}' status.`);
           setLoading(false);
           return;
         }
 
         if (response.data.applicationCount > 0) {
-          setError("Cannot edit task with existing applications");
+          setError("Editing disabled — Applications have already been received for this task.");
           setLoading(false);
           return;
         }

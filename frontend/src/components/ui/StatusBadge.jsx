@@ -9,7 +9,7 @@ const STATUS_MAP = {
   revision: { label: "Revision", cls: "bg-orange-50 text-orange-700 border-orange-300" },
   closed: { label: "Closed", cls: "bg-gray-100 text-gray-400 border-gray-300" },
   pending: { label: "Pending", cls: "bg-amber-100 text-amber-800 border-amber-300" },
-  accepted: { label: "Selected", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+  accepted: { label: "Working", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
   selected: { label: "Selected", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
   rejected: { label: "Rejected", cls: "bg-rose-100 text-rose-800 border-rose-300" },
   withdrawn: { label: "Withdrawn", cls: "bg-gray-100 text-gray-500 border-gray-300" },

@@ -31,7 +31,13 @@ const VARIANT_STYLES = {
     iconWrap: "bg-amber-100",
     iconColor: "text-amber-600",
     confirmBtn:
-      "bg-red-600 text-white shadow-sm hover:bg-red-700",
+      "bg-amber-600 text-white shadow-sm hover:bg-amber-700",
+  },
+  primary: {
+    iconWrap: "bg-primary/10",
+    iconColor: "text-primary",
+    confirmBtn:
+      "bg-primary text-primary-foreground shadow-elegant hover:-translate-y-0.5",
   },
 };
 

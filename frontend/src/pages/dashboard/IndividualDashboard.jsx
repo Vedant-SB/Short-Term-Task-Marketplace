@@ -17,6 +17,8 @@ import {
   Code,
   FileText,
   AlertCircle,
+  AlertTriangle,
+  RotateCcw,
   FolderX,
   Info,
   BadgeCheck,
@@ -192,12 +194,20 @@ function IndividualDashboard() {
     reviewCount = 0,
   } = statistics || {};
 
+  const activeApplicationsSentCount = (recentApplications || []).filter((app) => {
+    if (app.status === "rejected" || app.status === "withdrawn") return false;
+    if (app.taskId?.status === "completed" || app.taskId?.status === "closed") return false;
+    const isExpired = app.taskId?.applicationDeadline && new Date() > new Date(app.taskId.applicationDeadline);
+    if (app.status === "pending" && isExpired) return false;
+    return true;
+  }).length;
+
   /* ── Stat cards configuration ──────────────────────────────── */
   const statCards = [
     {
       title: "Applications Sent",
-      value: applicationsSent,
-      subtitle: "Applications Sent",
+      value: activeApplicationsSentCount,
+      subtitle: "Active Applications",
       icon: Send,
       iconBg: "bg-blue-50",
       iconColor: "text-blue-600",
@@ -352,7 +362,11 @@ function IndividualDashboard() {
                   return (
                     <div
                       key={task._id}
-                      className="flex flex-col gap-4 px-6 py-5.5 transition-colors duration-150 hover:bg-surface/40 md:flex-row md:items-center md:justify-between md:px-8"
+                      className={`flex flex-col gap-4 px-6 py-5.5 transition-colors duration-150 hover:bg-surface/40 md:flex-row md:items-center md:justify-between md:px-8 ${
+                        task.status === "revision_requested"
+                          ? "border-l-4 border-amber-500 bg-amber-50/20"
+                          : ""
+                      }`}
                     >
                       {/* Left: Avatar + Title & Company */}
                       <div className="flex items-center gap-4 min-w-[280px] flex-1">
@@ -365,9 +379,17 @@ function IndividualDashboard() {
                         </div>
 
                         <div className="min-w-0 space-y-0.5">
-                          <h3 className="font-display font-bold text-ink text-lg md:text-[1.15rem] leading-snug line-clamp-1">
-                            {task.title}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-display font-bold text-ink text-lg md:text-[1.15rem] leading-snug line-clamp-1">
+                              {task.title}
+                            </h3>
+                            {task.status === "revision_requested" && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md shrink-0">
+                                <AlertTriangle className="h-3 w-3" />
+                                Action Required
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
                             {companyName}
                             <BadgeCheck className="h-4 w-4 fill-blue-600 text-white" />
@@ -426,6 +448,11 @@ function IndividualDashboard() {
                             Status
                           </p>
                           <StatusBadge status={task.status} />
+                          {task.status === "under_review" && (
+                            <p className="text-[11px] font-medium text-amber-700 italic mt-0.5">
+                              Waiting for Company Review
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -465,6 +492,107 @@ function IndividualDashboard() {
         </motion.div>
 
         {/* ═══════════════════════════════════════════════════════ */}
+        {/*  ACTION REQUIRED SECTION                              */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {(() => {
+          const revisionActionItems = (continueWorking || [])
+            .filter((t) => t.status === "revision_requested")
+            .map((t) => ({
+              _id: t._id,
+              title: t.title,
+              companyName: t.postedBy?.companyName || "Company",
+              type: "revision_requested",
+              dateLabel: `Requested on ${formatDate(t.revisionRequestedAt || t.updatedAt)}`,
+              actionText: "Resubmit Work",
+              actionUrl: `/tasks/${t._id}/submit`,
+            }));
+
+          const reviewPendingItems = (recentApplications || [])
+            .filter((app) => {
+              const t = app.taskId;
+              if (!t || t.status !== "completed") return false;
+              if (app.status !== "accepted" && app.status !== "selected") return false;
+              const reviewStatus = t.reviewStatus || {};
+              return !reviewStatus.individualReviewSubmitted;
+            })
+            .map((app) => ({
+              _id: app.taskId._id,
+              title: app.taskId.title,
+              companyName: app.taskId.postedBy?.companyName || "Company",
+              type: "review_pending",
+              dateLabel: `Completed on ${formatDate(app.taskId.updatedAt)}`,
+              actionText: "Leave Review & Rating",
+              actionUrl: `/tasks/${app.taskId._id}/review`,
+            }));
+
+          const actionRequiredItems = [...revisionActionItems, ...reviewPendingItems];
+
+          if (actionRequiredItems.length === 0) return null;
+
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.25, ease }}
+              className="mb-8"
+            >
+              <SectionCard>
+                <SectionHeader
+                  title="Action Required"
+                  action={
+                    <span className="text-xs font-semibold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-300">
+                      {actionRequiredItems.length} item{actionRequiredItems.length !== 1 ? "s" : ""} requiring action
+                    </span>
+                  }
+                />
+
+                <div className="divide-y divide-border/40">
+                  {actionRequiredItems.map((item) => (
+                    <div
+                      key={item._id}
+                      className="flex flex-col gap-4 px-6 py-5 transition-colors hover:bg-surface/40 md:flex-row md:items-center md:justify-between md:px-8 border-l-4 border-amber-500 bg-amber-50/20"
+                    >
+                      <div className="flex items-center gap-4 min-w-[280px] flex-1">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 font-bold border border-amber-200 shadow-sm">
+                          {item.type === "revision_requested" ? (
+                            <RotateCcw className="h-5 w-5 text-amber-700" />
+                          ) : (
+                            <Star className="h-5 w-5 fill-amber-400 text-amber-500" />
+                          )}
+                        </div>
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-display font-bold text-ink text-base md:text-lg leading-snug line-clamp-1">
+                              {item.title}
+                            </h3>
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                              <AlertTriangle className="h-3 w-3" />
+                              Action Required
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground font-medium">
+                            {item.companyName} • {item.dateLabel}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Link to={item.actionUrl}>
+                          <PrimaryButton size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+                            {item.actionText}
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </PrimaryButton>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            </motion.div>
+          );
+        })()}
+
+        {/* ═══════════════════════════════════════════════════════ */}
         {/*  BOTTOM GRID: Applications | Recommendations          */}
         {/* ═══════════════════════════════════════════════════════ */}
         <motion.div
@@ -473,7 +601,7 @@ function IndividualDashboard() {
           transition={{ duration: 0.55, delay: 0.3, ease }}
           className="grid grid-cols-1 gap-6 lg:grid-cols-[55%_1fr]"
         >
-          {/* ── My Applications ────────────────────────────────── */}
+          {/* ── My Applications (Active Only) ────────────────── */}
           <SectionCard>
             <SectionHeader
               action={
@@ -491,93 +619,113 @@ function IndividualDashboard() {
               </h2>
             </SectionHeader>
 
-            {!recentApplications || recentApplications.length === 0 ? (
-              <EmptyState
-                icon={Send}
-                title="You haven't applied to any tasks yet."
-                button={
-                  <Link to="/tasks">
-                    <PrimaryButton className="mt-2">
-                      Browse Tasks
-                    </PrimaryButton>
-                  </Link>
+            {(() => {
+              const activeApplications = (recentApplications || []).filter((app) => {
+                if (app.status === "rejected" || app.status === "withdrawn") return false;
+                if (app.taskId?.status === "completed" || app.taskId?.status === "closed") return false;
+                if (
+                  app.taskId?.applicationDeadline &&
+                  new Date(app.taskId.applicationDeadline) < new Date() &&
+                  app.status === "pending"
+                ) {
+                  return false;
                 }
-              />
-            ) : (
-              <TableContainer>
-                <Table minWidth="min-w-[500px]">
-                  <TableHeader>
-                    <tr className="border-b border-border/40">
-                      <TableHead className="px-6 py-3.5 text-xs font-bold">
-                        Task
-                      </TableHead>
-                      <TableHead className="px-4 py-3.5 text-xs font-bold">
-                        Company
-                      </TableHead>
-                      <TableHead className="px-4 py-3.5 text-xs font-bold">
-                        Applied On
-                      </TableHead>
-                      <TableHead className="px-4 py-3.5 text-xs font-bold">
-                        Status
-                      </TableHead>
-                      <TableHead align="center" className="px-4 py-3.5 text-xs font-bold">
-                        Action
-                      </TableHead>
-                    </tr>
-                  </TableHeader>
-                  <TableBody>
-                    {recentApplications.map((app) => {
-                      const task = app.taskId;
-                      const companyName = task?.postedBy?.companyName || "Company";
+                return true;
+              });
 
-                      return (
-                        <TableRow key={app._id}>
-                          <TableCell className="px-6 py-4">
-                            <span className="font-display font-bold text-ink text-sm md:text-base line-clamp-1 max-w-[180px]">
-                              {task?.title || "Task"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="px-4 py-4">
-                            <span className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
-                              {companyName}
-                              <BadgeCheck className="h-3.5 w-3.5 fill-blue-600 text-white" />
-                            </span>
-                          </TableCell>
-                          <TableCell className="px-4 py-4">
-                            <span className="text-xs md:text-sm font-medium text-muted-foreground">
-                              {formatDate(app.appliedAt)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="px-4 py-4">
-                            <StatusBadge status={app.status} />
-                          </TableCell>
-                          <TableCell align="center" className="px-4 py-4">
-                            {app.status === "pending" ? (
-                              <button
-                                onClick={() => handleWithdraw(app._id)}
-                                disabled={withdrawingId === app._id}
-                                className="inline-flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs md:text-sm font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50 cursor-pointer shadow-sm"
-                              >
-                                {withdrawingId === app._id ? "Withdrawing..." : "Withdraw"}
-                              </button>
-                            ) : app.status === "accepted" || app.status === "selected" ? (
-                              <Link
-                                to={`/tasks/${task?._id}`}
-                                className="inline-flex items-center rounded-xl border border-border bg-card px-4 py-2 text-xs md:text-sm font-semibold text-primary hover:bg-surface shadow-sm"
-                              >
-                                View Task
-                              </Link>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
+              if (activeApplications.length === 0) {
+                return (
+                  <EmptyState
+                    icon={Send}
+                    title="No active applications."
+                    description="Apply for open tasks on the marketplace to start working."
+                    button={
+                      <Link to="/tasks">
+                        <PrimaryButton className="mt-2">
+                          Browse Tasks
+                        </PrimaryButton>
+                      </Link>
+                    }
+                  />
+                );
+              }
+
+              return (
+                <TableContainer>
+                  <Table minWidth="min-w-[500px]">
+                    <TableHeader>
+                      <tr className="border-b border-border/40">
+                        <TableHead className="px-6 py-3.5 text-xs font-bold">
+                          Task
+                        </TableHead>
+                        <TableHead className="px-4 py-3.5 text-xs font-bold">
+                          Company
+                        </TableHead>
+                        <TableHead className="px-4 py-3.5 text-xs font-bold">
+                          Applied On
+                        </TableHead>
+                        <TableHead className="px-4 py-3.5 text-xs font-bold">
+                          Status
+                        </TableHead>
+                        <TableHead align="center" className="px-4 py-3.5 text-xs font-bold">
+                          Action
+                        </TableHead>
+                      </tr>
+                    </TableHeader>
+                    <TableBody>
+                      {activeApplications.map((app) => {
+                        const task = app.taskId;
+                        const companyName = task?.postedBy?.companyName || "Company";
+
+                        return (
+                          <TableRow key={app._id}>
+                            <TableCell className="px-6 py-4">
+                              <span className="font-display font-bold text-ink text-sm md:text-base line-clamp-1 max-w-[180px]">
+                                {task?.title || "Task"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="px-4 py-4">
+                              <span className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
+                                {companyName}
+                                <BadgeCheck className="h-3.5 w-3.5 fill-blue-600 text-white" />
+                              </span>
+                            </TableCell>
+                            <TableCell className="px-4 py-4">
+                              <span className="text-xs md:text-sm font-medium text-muted-foreground">
+                                {formatDate(app.appliedAt)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="px-4 py-4">
+                              <StatusBadge status={app.status} />
+                            </TableCell>
+                            <TableCell align="center" className="px-4 py-4">
+                              {app.status === "pending" ? (
+                                <button
+                                  onClick={() => handleWithdraw(app._id)}
+                                  disabled={withdrawingId === app._id}
+                                  className="inline-flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs md:text-sm font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50 cursor-pointer shadow-sm"
+                                >
+                                  {withdrawingId === app._id ? "Withdrawing..." : "Withdraw"}
+                                </button>
+                              ) : app.status === "accepted" || app.status === "selected" ? (
+                                <Link
+                                  to={`/tasks/${task?._id}`}
+                                  className="inline-flex items-center rounded-xl border border-border bg-card px-4 py-2 text-xs md:text-sm font-semibold text-primary hover:bg-surface shadow-sm"
+                                >
+                                  View Task
+                                </Link>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              );
+            })()}
           </SectionCard>
 
           {/* ── Recommended Tasks ─────────────────────────────── */}

@@ -175,6 +175,10 @@ function TaskApplicants() {
     });
   };
 
+  const hasSelectedApplicant = applications.some(
+    (app) => app.status === "accepted" || app.status === "selected"
+  );
+
   if (loading) return <ApplicantsSkeleton />;
 
   return (
@@ -337,7 +341,7 @@ function TaskApplicants() {
                         </SecondaryButton>
                       </Link>
 
-                      {application.status === "pending" && (
+                      {application.status === "pending" && !hasSelectedApplicant && (
                         <PrimaryButton
                           size="sm"
                           onClick={() => handleAccept(application._id)}
@@ -348,6 +352,12 @@ function TaskApplicants() {
                             ? "Accepting..."
                             : "Accept Applicant"}
                         </PrimaryButton>
+                      )}
+
+                      {application.status === "pending" && hasSelectedApplicant && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-500">
+                          Task Already Assigned
+                        </span>
                       )}
 
                       {application.status === "accepted" && (
@@ -378,7 +388,7 @@ function TaskApplicants() {
         onClose={() => setConfirmConfig((c) => ({ ...c, open: false }))}
         onConfirm={confirmConfig.onConfirm}
         icon={UserCheck}
-        variant="warning"
+        variant="primary"
         title={confirmConfig.title}
         message={confirmConfig.message}
         confirmLabel={confirmConfig.confirmLabel}

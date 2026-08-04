@@ -111,6 +111,16 @@ function Register() {
         return;
       }
 
+      const parsedSkills = (trimmedData.skills || "")
+        .split(",")
+        .map((skill) => skill.trim())
+        .filter(Boolean);
+
+      if (parsedSkills.length === 0) {
+        setError("At least ONE skill is required for registration");
+        return;
+      }
+
       if (trimmedData.portfolioWebsite && !isValidHttpUrl(trimmedData.portfolioWebsite)) {
         setError("Portfolio website must be a valid URL");
         return;
@@ -174,7 +184,9 @@ function Register() {
 
         {/* Role selector */}
         <div>
-          <label htmlFor="reg-role" className={labelCls}>I am a</label>
+          <label htmlFor="reg-role" className={labelCls}>
+            I am a <span className="text-red-500">*</span>
+          </label>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -204,7 +216,9 @@ function Register() {
         {/* Shared fields */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="reg-email" className={labelCls}>Email</label>
+            <label htmlFor="reg-email" className={labelCls}>
+              Email <span className="text-red-500">*</span>
+            </label>
             <input
               id="reg-email"
               type="email"
@@ -213,11 +227,14 @@ function Register() {
               value={formData.email}
               onChange={handleChange}
               className={inputCls}
+              required
             />
           </div>
 
           <div>
-            <label htmlFor="reg-password" className={labelCls}>Password</label>
+            <label htmlFor="reg-password" className={labelCls}>
+              Password <span className="text-red-500">*</span>
+            </label>
             <input
               id="reg-password"
               type="password"
@@ -226,12 +243,15 @@ function Register() {
               value={formData.password}
               onChange={handleChange}
               className={inputCls}
+              required
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="reg-confirmPassword" className={labelCls}>Confirm Password</label>
+          <label htmlFor="reg-confirmPassword" className={labelCls}>
+            Confirm Password <span className="text-red-500">*</span>
+          </label>
           <input
             id="reg-confirmPassword"
             type="password"
@@ -240,6 +260,7 @@ function Register() {
             value={formData.confirmPassword}
             onChange={handleChange}
             className={inputCls}
+            required
           />
         </div>
 
@@ -247,7 +268,9 @@ function Register() {
         {formData.role === "company" ? (
           <div className="space-y-4">
             <div>
-              <label htmlFor="reg-companyName" className={labelCls}>Company Name</label>
+              <label htmlFor="reg-companyName" className={labelCls}>
+                Company Name <span className="text-red-500">*</span>
+              </label>
               <input
                 id="reg-companyName"
                 type="text"
@@ -256,12 +279,15 @@ function Register() {
                 value={formData.companyName}
                 onChange={handleChange}
                 className={inputCls}
+                required
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="reg-industry" className={labelCls}>Industry</label>
+                <label htmlFor="reg-industry" className={labelCls}>
+                  Industry <span className="text-red-500">*</span>
+                </label>
                 <input
                   id="reg-industry"
                   type="text"
@@ -270,6 +296,7 @@ function Register() {
                   value={formData.industry}
                   onChange={handleChange}
                   className={inputCls}
+                  required
                 />
               </div>
 
@@ -288,7 +315,9 @@ function Register() {
             </div>
 
             <div>
-              <label htmlFor="reg-companyDescription" className={labelCls}>Company Description</label>
+              <label htmlFor="reg-companyDescription" className={labelCls}>
+                Company Description <span className="text-red-500">*</span>
+              </label>
               <textarea
                 id="reg-companyDescription"
                 name="companyDescription"
@@ -297,6 +326,7 @@ function Register() {
                 onChange={handleChange}
                 rows="4"
                 className={inputCls}
+                required
               />
             </div>
           </div>
@@ -305,13 +335,16 @@ function Register() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="reg-individualType" className={labelCls}>Type</label>
+                <label htmlFor="reg-individualType" className={labelCls}>
+                  Type <span className="text-red-500">*</span>
+                </label>
                 <select
                   id="reg-individualType"
                   name="individualType"
                   value={formData.individualType}
                   onChange={handleChange}
                   className={selectCls}
+                  required
                 >
                   <optgroup label="Students">
                     <option value="first_year_student">
@@ -342,7 +375,9 @@ function Register() {
               </div>
 
               <div>
-                <label htmlFor="reg-name" className={labelCls}>Full Name</label>
+                <label htmlFor="reg-name" className={labelCls}>
+                  Full Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   id="reg-name"
                   type="text"
@@ -351,12 +386,15 @@ function Register() {
                   value={formData.name}
                   onChange={handleChange}
                   className={inputCls}
+                  required
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="reg-bio" className={labelCls}>Bio</label>
+              <label htmlFor="reg-bio" className={labelCls}>
+                Bio <span className="text-red-500">*</span>
+              </label>
               <textarea
                 id="reg-bio"
                 name="bio"
@@ -365,6 +403,7 @@ function Register() {
                 onChange={handleChange}
                 rows="3"
                 className={inputCls}
+                required
               />
             </div>
 
@@ -397,7 +436,9 @@ function Register() {
             </div>
 
             <div>
-              <label htmlFor="reg-skills" className={labelCls}>Skills</label>
+              <label htmlFor="reg-skills" className={labelCls}>
+                Skills <span className="text-red-500">*</span>
+              </label>
               <input
                 id="reg-skills"
                 type="text"

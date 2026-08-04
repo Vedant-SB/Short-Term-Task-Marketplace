@@ -136,7 +136,7 @@ function ReviewSubmission() {
       message:
         "This will mark the task as completed. This action cannot be undone.",
       confirmLabel: "Yes, Complete",
-      variant: "warning",
+      variant: "primary",
       icon: CheckCircle2,
       onConfirm: async () => {
         setConfirmConfig((c) => ({ ...c, open: false }));
@@ -209,7 +209,7 @@ function ReviewSubmission() {
       title: "Submit Review?",
       message: "Your review will be visible to the other party.",
       confirmLabel: "Submit Review",
-      variant: "warning",
+      variant: "primary",
       icon: Star,
       onConfirm: async () => {
         setConfirmConfig((c) => ({ ...c, open: false }));

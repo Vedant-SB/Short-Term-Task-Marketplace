@@ -107,14 +107,19 @@ const fadeUp = {
 function CompanyDashboard() {
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
+  const [allCompanyTasks, setAllCompanyTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await api.get("/dashboard/company");
-        setDashboard(res.data.dashboard);
+        const [dashRes, tasksRes] = await Promise.all([
+          api.get("/dashboard/company"),
+          api.get("/tasks/my-tasks"),
+        ]);
+        setDashboard(dashRes.data.dashboard);
+        setAllCompanyTasks(tasksRes.data.tasks || []);
       } catch (err) {
         console.error(err);
         setError(err.response?.data?.message || "Failed to load dashboard");
@@ -158,8 +163,51 @@ function CompanyDashboard() {
     reviewCount,
     recentTasks,
     recentApplications,
-    upcomingDeadlines,
   } = dashboard;
+
+  const activeRecentTasks = (recentTasks || []).filter(
+    (t) => t.status !== "completed" && t.status !== "closed"
+  );
+
+  const pendingActions = allCompanyTasks.filter((task) => {
+    if (task.status === "under_review" || task.status === "revision_requested") return true;
+    if (task.status === "completed" && !task.reviewStatus?.companyReviewSubmitted) return true;
+    return false;
+  });
+
+  const getPendingActionDetails = (task) => {
+    if (task.status === "under_review") {
+      const isResubmission = !!task.revisionRequestedAt;
+      return {
+        label: isResubmission ? "Resubmission Received" : "Submission Received",
+        statusKey: "under_review",
+        actionText: "Review Submission",
+        actionUrl: `/tasks/${task._id}/review`,
+      };
+    }
+    if (task.status === "revision_requested") {
+      return {
+        label: "Waiting for Resubmission",
+        statusKey: "revision_requested",
+        actionText: "Review Submission",
+        actionUrl: `/tasks/${task._id}/review`,
+      };
+    }
+    if (task.status === "completed") {
+      return {
+        label: "Review Pending",
+        statusKey: "completed",
+        actionText: "Leave Review",
+        actionUrl: `/tasks/${task._id}/review`,
+      };
+    }
+    return {
+      label: task.status,
+      statusKey: task.status,
+      actionText: "View Details",
+      actionUrl: `/tasks/${task._id}`,
+    };
+  };
 
   /* ── Stat cards config ────────────────────────────────────── */
   const statCards = [
@@ -266,7 +314,7 @@ function CompanyDashboard() {
         </motion.section>
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/*  RECENT TASKS                                         */}
+        {/*  RECENT TASKS (ACTIVE ONLY)                           */}
         {/* ═══════════════════════════════════════════════════════ */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -288,10 +336,10 @@ function CompanyDashboard() {
               }
             />
 
-            {recentTasks.length === 0 ? (
+            {activeRecentTasks.length === 0 ? (
               <EmptyState
                 icon={FileText}
-                description="No tasks yet. Create your first task to get started."
+                description="No active tasks. Create a new task to get started."
                 button={
                   <Link to="/tasks/create">
                     <PrimaryButton>
@@ -318,7 +366,7 @@ function CompanyDashboard() {
                     </tr>
                   </TableHeader>
                   <TableBody>
-                    {recentTasks.map((task) => {
+                    {activeRecentTasks.map((task) => {
                       const deadline =
                         task.status === "open"
                           ? task.applicationDeadline
@@ -397,7 +445,7 @@ function CompanyDashboard() {
         </motion.div>
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/*  BOTTOM ROW: Applications | Deadlines                 */}
+        {/*  BOTTOM ROW: Applications | Pending Actions            */}
         {/* ═══════════════════════════════════════════════════════ */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -492,25 +540,21 @@ function CompanyDashboard() {
             )}
           </SectionCard>
 
-          {/* ── Upcoming Deadlines ─────────────────────────────── */}
+          {/* ── Pending Actions ───────────────────────────────── */}
           <SectionCard>
             <SectionHeader
-              title="Upcoming Deadlines"
+              title="Pending Actions"
               action={
-                <Link
-                  to="/tasks"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                >
-                  View All
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {pendingActions.length} item{pendingActions.length !== 1 ? "s" : ""}
+                </span>
               }
             />
 
-            {upcomingDeadlines.length === 0 ? (
+            {pendingActions.length === 0 ? (
               <EmptyState
-                icon={Clock}
-                description="No upcoming deadlines."
+                icon={CheckCircle2}
+                description="No pending submissions or actions requiring review."
               />
             ) : (
               <TableContainer>
@@ -518,24 +562,21 @@ function CompanyDashboard() {
                   <TableHeader>
                     <tr className="border-b border-border/40">
                       <TableHead className="px-6 py-3">Task</TableHead>
-                      <TableHead>Deadline</TableHead>
-                      <TableHead>Days Left</TableHead>
-                      <TableHead align="right">Status</TableHead>
+                      <TableHead>Applicant</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead align="right" className="px-6 py-3">Action</TableHead>
                     </tr>
                   </TableHeader>
                   <TableBody>
-                    {upcomingDeadlines.map((task) => {
-                      const deadline =
-                        task.status === "open"
-                          ? task.applicationDeadline
-                          : task.currentDeadline;
-                      const daysLeft = getDaysLeft(deadline);
+                    {pendingActions.map((task) => {
+                      const details = getPendingActionDetails(task);
+                      const applicantName = task.selectedApplicant?.name || "Applicant";
 
                       return (
                         <TableRow
                           key={task._id}
                           clickable
-                          onClick={() => navigate(`/tasks/${task._id}`)}
+                          onClick={() => navigate(details.actionUrl)}
                         >
                           <TableCell className="px-6 py-3.5">
                             <span className="text-sm font-medium text-ink line-clamp-1">
@@ -543,29 +584,23 @@ function CompanyDashboard() {
                             </span>
                           </TableCell>
                           <TableCell className="px-4 py-3.5">
-                            <span className="text-sm text-muted-foreground">
-                              {formatDate(deadline)}
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {applicantName}
                             </span>
                           </TableCell>
                           <TableCell className="px-4 py-3.5">
-                            <span
-                              className={`text-sm font-semibold ${
-                                daysLeft !== null && daysLeft <= 2
-                                  ? "text-red-500"
-                                  : daysLeft !== null && daysLeft <= 7
-                                  ? "text-amber-600"
-                                  : "text-emerald-600"
-                              }`}
-                            >
-                              {daysLeft !== null
-                                ? daysLeft === 0
-                                  ? "Today"
-                                  : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left`
-                                : "—"}
-                            </span>
+                            <StatusBadge status={details.statusKey} label={details.label} />
                           </TableCell>
-                          <TableCell align="right" className="px-4 py-3.5">
-                            <StatusBadge status={task.status} />
+                          <TableCell align="right" className="px-6 py-3.5">
+                            <Link
+                              to={details.actionUrl}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Button variant="primary" size="sm">
+                                {details.actionText}
+                                <ChevronRight className="h-3 w-3" />
+                              </Button>
+                            </Link>
                           </TableCell>
                         </TableRow>
                       );

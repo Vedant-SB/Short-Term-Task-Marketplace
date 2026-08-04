@@ -235,3 +235,18 @@
 @utility animate-fade-up {
   animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+@keyframes stage-breathe {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 40%, transparent);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in oklch, var(--primary) 0%, transparent);
+    transform: scale(1.03);
+  }
+}
+@utility animate-stage-breathe {
+  animation: stage-breathe 2.5s ease-in-out infinite;
+}
+

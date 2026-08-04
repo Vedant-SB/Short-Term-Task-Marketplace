@@ -136,24 +136,76 @@ function CreateTask() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setSubmitting(true);
     setError("");
     setMessage("");
+
+    const title = formData.title.trim();
+    const description = formData.description.trim();
+    const category = formData.category.trim();
+    const budgetNum = Number(formData.budget);
+    const durationNum = Number(formData.duration);
+    const applicationDeadline = formData.applicationDeadline;
+
+    const parsedSkills = formData.skillsRequired
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const parsedDeliverables = trimAndFilterList(formData.deliverables);
+
+    if (!title) {
+      setError("Task Title is required and cannot be empty.");
+      return;
+    }
+
+    if (!description) {
+      setError("Description is required and cannot be empty.");
+      return;
+    }
+
+    if (!category) {
+      setError("Category is required. Please select a category.");
+      return;
+    }
+
+    if (!formData.budget || isNaN(budgetNum) || budgetNum <= 0) {
+      setError("Budget is required and must be greater than 0.");
+      return;
+    }
+
+    if (!formData.duration || isNaN(durationNum) || durationNum <= 0) {
+      setError("Duration is required. Please select a duration.");
+      return;
+    }
+
+    if (!applicationDeadline) {
+      setError("Application Deadline is required.");
+      return;
+    }
+
+    if (parsedSkills.length === 0) {
+      setError("At least ONE skill is required. Please enter skills separated by commas.");
+      return;
+    }
+
+    if (parsedDeliverables.length === 0) {
+      setError("At least ONE deliverable is required. Empty deliverable rows do not count.");
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
       const payload = {
         ...formData,
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        category: formData.category.trim(),
-        skillsRequired: formData.skillsRequired
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        budget: Number(formData.budget),
-        duration: Number(formData.duration),
-        applicationDeadline: formData.applicationDeadline,
-        deliverables: trimAndFilterList(formData.deliverables),
+        title,
+        description,
+        category,
+        skillsRequired: parsedSkills,
+        budget: budgetNum,
+        duration: durationNum,
+        applicationDeadline,
+        deliverables: parsedDeliverables,
         eligibilityAndPreferences: trimAndFilterList(formData.eligibilityAndPreferences),
       };
 
@@ -292,7 +344,8 @@ function CreateTask() {
                         value={formData.budget}
                         onChange={handleChange}
                         placeholder="e.g. 2000"
-                        min="0"
+                        min="1"
+                        required
                       />
 
                       <SelectField
@@ -335,7 +388,8 @@ function CreateTask() {
                       value={formData.skillsRequired}
                       onChange={handleChange}
                       placeholder="e.g. React, Node.js, Tailwind CSS, MongoDB"
-                      helperText="Enter skills separated by commas"
+                      helperText="Enter skills separated by commas (at least 1 skill required)"
+                      required
                     />
                   </FormSection>
                 </div>
@@ -357,7 +411,7 @@ function CreateTask() {
                         Target Audience & Eligibility
                       </span>
                     }
-                    description="Select who is eligible to apply for this task."
+                    description="Select who is eligible to apply for this task (optional)."
                   >
                     {ELIGIBLE_OPTIONS.map((group) => (
                       <div key={group.group} className="space-y-3">
@@ -407,7 +461,7 @@ function CreateTask() {
                           bg="bg-amber-50"
                           color="text-amber-600"
                         />
-                        Deliverables
+                        Deliverables <span className="text-red-500">*</span>
                       </span>
                     }
                     description="List the specific deliverables expected upon task completion."

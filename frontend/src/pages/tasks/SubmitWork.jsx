@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Send, Link as LinkIcon } from "lucide-react";
+import { Send, Link as LinkIcon, AlertTriangle } from "lucide-react";
 import api from "../../api/axios";
 import {
   PageHeader,
@@ -18,6 +18,8 @@ function SubmitWork() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const [task, setTask] = useState(null);
+  const [loadingTask, setLoadingTask] = useState(true);
   const [submissionLink, setSubmissionLink] = useState("");
   const [submissionNote, setSubmissionNote] = useState("");
   const [message, setMessage] = useState("");
@@ -25,8 +27,25 @@ function SubmitWork() {
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  useEffect(() => {
+    const fetchTask = async () => {
+      try {
+        const res = await api.get(`/tasks/${id}`);
+        setTask(res.data.task);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingTask(false);
+      }
+    };
+    fetchTask();
+  }, [id]);
+
+  const isDeadlinePassed = task?.currentDeadline && new Date() > new Date(task.currentDeadline);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isDeadlinePassed) return;
     setShowConfirm(true);
   };
 
@@ -56,6 +75,28 @@ function SubmitWork() {
       setSubmitting(false);
     }
   };
+
+  if (!loadingTask && isDeadlinePassed) {
+    return (
+      <div className="relative min-h-[calc(100vh-4rem)] bg-canvas flex items-center justify-center p-6">
+        <div className="pointer-events-none fixed inset-0 bg-grid opacity-40" />
+        <Card className="relative max-w-md text-center p-8">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 border border-red-200">
+            <AlertTriangle className="h-7 w-7 text-red-500" />
+          </div>
+          <h2 className="font-display text-xl font-bold text-ink">Submission Deadline Passed</h2>
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+            The submission deadline for this task has passed. Work can no longer be submitted. Please contact the company to request a deadline extension.
+          </p>
+          <div className="mt-6 flex justify-center gap-3">
+            <Link to={`/tasks/${id}`}>
+              <PrimaryButton>View Task Details</PrimaryButton>
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-canvas">
@@ -157,7 +198,7 @@ function SubmitWork() {
         onClose={() => setShowConfirm(false)}
         onConfirm={confirmSubmit}
         icon={Send}
-        variant="warning"
+        variant="primary"
         title="Submit your work?"
         message="After submission your work will be sent to the company for review. Make sure everything is ready."
         cancelLabel="Go Back"

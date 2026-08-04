@@ -2,7 +2,8 @@ const Task = require("../models/Task");
 const Application = require("../models/Application");
 const {
     getTaskReviewStatusMap,
-    buildReviewStatus
+    buildReviewStatus,
+    getUserReviewSummary
 } = require("../utils/reviewHelpers");
 const {
     parseApplicationDeadline,
@@ -178,7 +179,7 @@ const getTaskById = async (req, res) => {
         );
 
         const task = await Task.findById(req.params.id)
-            .populate("postedBy", "companyName")
+            .populate("postedBy", "companyName industry companyDescription website")
             .populate(
                 "selectedApplicant",
                 "name email individualType"
@@ -202,7 +203,8 @@ const getTaskById = async (req, res) => {
         const [
             existingApplication,
             applicationCount,
-            reviewMap
+            reviewMap,
+            companyReviewSummary
         ] = await Promise.all([
             isIndividual
                 ? Application.findOne({
@@ -214,7 +216,10 @@ const getTaskById = async (req, res) => {
                 taskId: task._id,
                 status: { $ne: "withdrawn" }
             }),
-            getTaskReviewStatusMap([task._id])
+            getTaskReviewStatusMap([task._id]),
+            task.postedBy?._id
+                ? getUserReviewSummary(task.postedBy._id)
+                : Promise.resolve({ averageRating: 0, reviewCount: 0 })
         ]);
 
         let hasApplied = false;
@@ -235,6 +240,9 @@ const getTaskById = async (req, res) => {
 
         const taskData = normalizeTaskArraysForResponse(task.toObject());
         taskData.reviewStatus = reviewStatus;
+        taskData.companyRating = companyReviewSummary?.averageRating || 0;
+        taskData.companyReviewCount = companyReviewSummary?.reviewCount || 0;
+        taskData.applicantsCount = applicationCount;
 
         res.status(200).json({
             success: true,

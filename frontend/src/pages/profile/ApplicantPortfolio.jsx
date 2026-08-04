@@ -383,18 +383,6 @@ function ApplicantPortfolio() {
                         )}
 
                         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-xs text-muted-foreground">
-                          {project.budget != null && (
-                            <span className="inline-flex items-center gap-1 font-semibold text-ink">
-                              <IndianRupee className="h-3.5 w-3.5 text-muted-foreground" />
-                              ₹{project.budget.toLocaleString("en-IN")}
-                            </span>
-                          )}
-                          {project.duration && (
-                            <span className="inline-flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                              {project.duration} Days
-                            </span>
-                          )}
                           {project.completedOn && (
                             <span className="inline-flex items-center gap-1">
                               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
@@ -416,17 +404,6 @@ function ApplicantPortfolio() {
                             ))}
                           </div>
                         )}
-                      </div>
-
-                      {/* Project Action */}
-                      <div className="shrink-0 pt-2 md:pt-0">
-                        <Link
-                          to={`/tasks/${project.taskId}`}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-xs font-semibold text-ink shadow-sm transition-all hover:bg-surface hover:shadow"
-                        >
-                          View Task Details
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </Link>
                       </div>
                     </div>
 
