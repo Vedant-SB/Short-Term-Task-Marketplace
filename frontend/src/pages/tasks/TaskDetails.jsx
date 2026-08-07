@@ -274,7 +274,8 @@ function TaskDetails() {
   const companyName = task.postedBy?.companyName || "Company";
   const companyRating = Number(task.companyRating ?? task.postedBy?.rating ?? task.postedBy?.averageRating ?? 0);
   const companyReviewCount = Number(task.companyReviewCount ?? task.postedBy?.reviewCount ?? task.postedBy?.totalReviews ?? 0);
-  const companyWebsite = task.postedBy?.website || task.postedBy?.companyWebsite || task.companyWebsite;
+  const rawWebsite = task.postedBy?.website;
+  const companyWebsite = typeof rawWebsite === "string" && rawWebsite.trim().length > 0 ? rawWebsite.trim() : null;
   const deliverables = task.deliverables || [];
   const eligibilityAndPreferences = task.eligibilityAndPreferences || [];
 
@@ -691,7 +692,7 @@ function TaskDetails() {
                           <Globe className="h-4 w-4 text-slate-400" />
                           <span>Website:</span>
                           <a
-                            href={companyWebsite.startsWith("http") ? companyWebsite : `https://${companyWebsite}`}
+                            href={companyWebsite.startsWith("http://") || companyWebsite.startsWith("https://") ? companyWebsite : `https://${companyWebsite}`}
                             target="_blank"
                             rel="noreferrer"
                             className="text-violet-600 hover:underline font-semibold"

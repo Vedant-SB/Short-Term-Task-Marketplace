@@ -34,7 +34,7 @@ app.use(
 app.use(helmet());
 app.use(express.json());
 
-app.use("/api/auth", authRoutes, authLimiter);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/applications", applicationRoutes);
