@@ -265,7 +265,7 @@ function TaskDetails() {
   const individualReviewSubmitted = task.reviewStatus?.individualReviewSubmitted;
   const canEdit = isOwner && task.status === "open" && applicationCount === 0;
   const canDelete = isOwner && task.status === "open" && applicationCount === 0;
-  const canExtendDeadline = isOwner && (task.status === "in_progress" || task.status === "revision_requested" || task.status === "under_review");
+  const canExtendDeadline = isOwner && (task.status === "in_progress" || task.status === "revision_requested");
   const daysLeft = getDaysLeft(task.status === "open" ? task.applicationDeadline : task.currentDeadline);
   const deadlineDate = (task.status === "open" ? task.applicationDeadline : task.currentDeadline) ? formatDisplayDate(task.status === "open" ? task.applicationDeadline : task.currentDeadline) : null;
   const statusInfo = STATUS_CONFIG[task.status] || STATUS_CONFIG.open;
