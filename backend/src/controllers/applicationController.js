@@ -292,7 +292,7 @@ const acceptApplication = async (req, res) => {
 
         const task = await Task.findById(application.taskId)
         .select(
-        "title budget status category duration createdAt applicationDeadline taskStartDate originalDeadline currentDeadline deadlineExtensions revisionReason revisionExpectedChanges")
+        "title budget status category duration createdAt applicationDeadline taskStartDate originalDeadline currentDeadline deadlineExtensions revisionReason revisionExpectedChanges postedBy")
 
         if (!task) {
             return res.status(404).json({

@@ -15,16 +15,12 @@ import {
   CalendarPlus,
   Star,
   Building2,
-  ChevronRight,
-  ShieldCheck,
-  UserCheck,
   RotateCcw,
   Edit3,
   Trash2,
   Info,
   Award,
   CalendarDays,
-  ExternalLink,
   Globe,
   Folder,
   Users,
@@ -157,6 +153,10 @@ function TaskDetails() {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  useEffect(() => {
     fetchTaskDetails();
   }, [id]);
 
@@ -282,6 +282,24 @@ function TaskDetails() {
   /* ─── Master Sticky Action Section Renderer ─── */
 
   const renderPrimaryAction = () => {
+    /* Guest: Cannot apply without logging in */
+    if (!user) {
+      return (
+        <div className="space-y-2">
+          <button
+            disabled
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-sm opacity-50 cursor-not-allowed"
+          >
+            <Send className="h-4 w-4" strokeWidth={1.8} />
+            Apply Now
+          </button>
+          <p className="text-center text-xs font-medium text-slate-500">
+            Login to apply to this task.
+          </p>
+        </div>
+      );
+    }
+
     /* Individual: Open Task */
     if (user?.role === "individual" && task.status === "open") {
       const closed = new Date() > new Date(task.applicationDeadline);

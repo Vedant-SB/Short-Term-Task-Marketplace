@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, useScroll, useMotionTemplate, useTransform } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
@@ -11,6 +11,8 @@ const scrollLinks = [
 
 export function Nav() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isTasksPage = location.pathname === "/tasks";
   const { scrollY } = useScroll();
   const blur = useTransform(scrollY, [0, 120], [8, 20]);
   const backdrop = useMotionTemplate`blur(${blur}px) saturate(1.4)`;
@@ -67,28 +69,42 @@ export function Nav() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-          {scrollLinks.map(([label, id]) => (
+          {isTasksPage ? (
             <button
-              key={id}
-              onClick={(e) => handleNavClick(e, id)}
-              className={`transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0 ${
-                activeSection === id ? "text-ink" : ""
-              }`}
+              onClick={() => navigate("/")}
+              className="transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0"
             >
-              {label}
+              Back
             </button>
-          ))}
-          <Link to="/tasks" className="transition-colors hover:text-ink">
-            Open Tasks
-          </Link>
-          <button
-            onClick={(e) => handleNavClick(e, "footer")}
-            className={`transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0 ${
-              activeSection === "footer" ? "text-ink" : ""
-            }`}
-          >
-            About
-          </button>
+          ) : (
+            <>
+              {scrollLinks.map(([label, id]) => (
+                <button
+                  key={id}
+                  onClick={(e) => handleNavClick(e, id)}
+                  className={`transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0 ${activeSection === id ? "text-ink" : ""
+                    }`}
+                >
+                  {label}
+                </button>
+              ))}
+
+              <button
+                onClick={(e) => handleNavClick(e, "tasks")}
+                className="transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0"
+              >
+                Open Tasks
+              </button>
+
+              <button
+                onClick={(e) => handleNavClick(e, "footer")}
+                className={`transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0 ${activeSection === "footer" ? "text-ink" : ""
+                  }`}
+              >
+                About
+              </button>
+            </>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -124,28 +140,45 @@ export function Nav() {
           transition={{ duration: 0.2 }}
           className="md:hidden border-t border-border/60 bg-background/95 px-6 pb-4 pt-3 flex flex-col gap-3 text-sm text-muted-foreground"
         >
-          {scrollLinks.map(([label, id]) => (
+          {isTasksPage ? (
             <button
-              key={id}
-              onClick={(e) => handleNavClick(e, id)}
-              className={`text-left transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0 ${
-                activeSection === id ? "text-ink" : ""
-              }`}
+              onClick={() => {
+                navigate("/");
+                setMobileOpen(false);
+              }}
+              className="text-left transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0"
             >
-              {label}
+              Back
             </button>
-          ))}
-          <Link to="/tasks" className="transition-colors hover:text-ink" onClick={() => setMobileOpen(false)}>
-            Open Tasks
-          </Link>
-          <button
-            onClick={(e) => handleNavClick(e, "footer")}
-            className={`text-left transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0 ${
-              activeSection === "footer" ? "text-ink" : ""
-            }`}
-          >
-            About
-          </button>
+          ) : (
+            <>
+              {scrollLinks.map(([label, id]) => (
+                <button
+                  key={id}
+                  onClick={(e) => handleNavClick(e, id)}
+                  className={`text-left transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0 ${activeSection === id ? "text-ink" : ""
+                    }`}
+                >
+                  {label}
+                </button>
+              ))}
+
+              <button
+                onClick={(e) => handleNavClick(e, "tasks")}
+                className="text-left transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0"
+              >
+                Open Tasks
+              </button>
+
+              <button
+                onClick={(e) => handleNavClick(e, "footer")}
+                className={`text-left transition-colors hover:text-ink bg-transparent border-none cursor-pointer p-0 ${activeSection === "footer" ? "text-ink" : ""
+                  }`}
+              >
+                About
+              </button>
+            </>
+          )}
           <Link to="/login" className="transition-colors hover:text-ink sm:hidden" onClick={() => setMobileOpen(false)}>
             Sign in
           </Link>

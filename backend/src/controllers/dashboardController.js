@@ -51,21 +51,10 @@ const getCompanyDashboard = async (req, res) => {
 
         // ── Applications count ──────────────────────────────────
         // Count active applications (exclude rejected, withdrawn, expired, completed)
-        const activeCompanyTasks = await Task.find({
-            postedBy: companyId,
-            status: { $in: ["open", "in_progress", "under_review", "revision_requested"] }
-        }).select("_id status applicationDeadline");
-
-        const activeTaskIds = activeCompanyTasks
-            .filter(t => t.status !== "open" || !t.applicationDeadline || new Date(t.applicationDeadline) > new Date())
-            .map(t => t._id);
-
-        const applicationsReceived = activeTaskIds.length > 0
-            ? await Application.countDocuments({
-                taskId: { $in: activeTaskIds },
-                status: { $nin: ["rejected", "withdrawn", "completed"] }
-            })
-            : 0;
+        const applicationsReceived = await Application.countDocuments({
+            taskId: { $in: taskIds },
+            status: { $ne: "withdrawn" }
+        });
 
         // ── Recent Tasks (latest 5) with application counts ─────
         const recentTaskDocs = await Task.find({
@@ -184,6 +173,7 @@ const getIndividualDashboard = async (req, res) => {
         const [
             user,
             applicationsSent,
+            activeApplications,
             assignedTasksCount,
             completedProjects,
             reviewSummary,
@@ -195,6 +185,11 @@ const getIndividualDashboard = async (req, res) => {
 
             Application.countDocuments({
                 applicantId: userId
+            }),
+
+            Application.countDocuments({
+                applicantId: userId,
+                status: { $in: ["pending", "accepted", "selected"] }
             }),
 
             Task.countDocuments({
@@ -284,6 +279,7 @@ const getIndividualDashboard = async (req, res) => {
                 studentName,
                 statistics: {
                     applicationsSent,
+                    activeApplications,
                     assignedTasks: assignedTasksCount,
                     completedProjects,
                     averageRating: reviewSummary.averageRating,

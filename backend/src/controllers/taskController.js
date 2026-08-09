@@ -288,6 +288,28 @@ const getMyTasks = async (req, res) => {
                 createdAt: -1
             });
 
+        const applicationCounts = await Application.aggregate([
+            {
+                $match: {
+                    taskId: { $in: tasks.map(task => task._id) },
+                    status: { $ne: "withdrawn" }
+                }
+            },
+            {
+                $group: {
+                    _id: "$taskId",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const applicationCountMap = new Map(
+            applicationCounts.map(item => [
+                item._id.toString(),
+                item.count
+            ])
+        );
+
         const reviewMap =
             await getTaskReviewStatusMap(
                 tasks.map(task => task._id)
@@ -295,6 +317,7 @@ const getMyTasks = async (req, res) => {
 
         const tasksWithReviews = tasks.map((task) => {
             const taskData = normalizeTaskArraysForResponse(task.toObject());
+
             taskData.reviewStatus =
                 buildReviewStatus(
                     reviewMap.get(
@@ -302,13 +325,20 @@ const getMyTasks = async (req, res) => {
                     ) || []
                 );
 
+            taskData.applicationCount =
+                applicationCountMap.get(task._id.toString()) || 0;
+
             return taskData;
         });
 
+        const tasksWithApplications = tasksWithReviews.filter(
+            task => task.applicationCount > 0
+        );
+
         res.status(200).json({
             success: true,
-            count: tasksWithReviews.length,
-            tasks: tasksWithReviews
+            count: tasksWithApplications.length,
+            tasks: tasksWithApplications
         });
 
     } catch (error) {
@@ -668,9 +698,9 @@ const extendSubmissionDeadline = async (req, res) => {
     try {
 
         const {
-    days,
-    reason = ""
-} = req.body;
+            days,
+            reason = ""
+        } = req.body;
         const normalizedDays = Number(days);
 
         if (!Number.isInteger(normalizedDays) || normalizedDays < 1) {
@@ -708,12 +738,12 @@ const extendSubmissionDeadline = async (req, res) => {
             });
         }
 
-       if (!task.currentDeadline) {
-    return res.status(400).json({
-        success: false,
-        message: "Submission deadline is not set"
-    });
-}
+        if (!task.currentDeadline) {
+            return res.status(400).json({
+                success: false,
+                message: "Submission deadline is not set"
+            });
+        }
 
         const previousDeadline = new Date(task.currentDeadline);
         const newDeadline = addDays(previousDeadline, normalizedDays);

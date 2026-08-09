@@ -114,6 +114,13 @@ function ApplicantsSkeleton() {
 
 function TaskApplicants() {
   const { taskId } = useParams();
+  useEffect(() => {
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: "instant",
+  });
+}, [taskId]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -126,7 +133,7 @@ function TaskApplicants() {
     title: "",
     message: "",
     confirmLabel: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   const fetchApplicants = async () => {
@@ -205,11 +212,10 @@ function TaskApplicants() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className={`mb-6 rounded-xl border px-4 py-3 text-sm font-medium ${
-              messageType === "success"
+            className={`mb-6 rounded-xl border px-4 py-3 text-sm font-medium ${messageType === "success"
                 ? "border-green-200 bg-green-50 text-green-700"
                 : "border-destructive/20 bg-destructive/5 text-destructive"
-            }`}
+              }`}
           >
             {message}
           </motion.div>
@@ -291,11 +297,10 @@ function TaskApplicants() {
                           <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
                             <span className="inline-flex items-center gap-1">
                               <Star
-                                className={`h-3.5 w-3.5 ${
-                                  avgRating > 0
+                                className={`h-3.5 w-3.5 ${avgRating > 0
                                     ? "fill-amber-400 text-amber-400"
                                     : "text-border"
-                                }`}
+                                  }`}
                                 strokeWidth={1.5}
                               />
                               <span className="font-semibold text-ink">
@@ -333,13 +338,24 @@ function TaskApplicants() {
                     </div>
 
                     {/* Actions row */}
+                    {/* Actions row */}
                     <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border/50 pt-4">
+
+                      <Link to={`/tasks/${taskId}`}>
+                        <SecondaryButton size="sm">
+                          <Briefcase className="h-3.5 w-3.5" />
+                          View Task
+                        </SecondaryButton>
+                      </Link>
+
                       <Link to={`/portfolio/${applicant?._id}`}>
                         <SecondaryButton size="sm">
                           <FolderOpen className="h-3.5 w-3.5" />
                           View Portfolio
                         </SecondaryButton>
                       </Link>
+
+                      {/* existing Accept / status buttons continue here */}
 
                       {application.status === "pending" && !hasSelectedApplicant && (
                         <PrimaryButton

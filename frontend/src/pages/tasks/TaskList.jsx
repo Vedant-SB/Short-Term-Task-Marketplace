@@ -449,12 +449,6 @@ function TaskList() {
             className="min-w-0"
           >
             <div className="mx-auto max-w-4xl">
-              {filteredTasks.length > 0 && (
-                <p className="mb-4 text-sm text-muted-foreground">
-                  Showing <span className="font-medium text-ink">{filteredTasks.length}</span> of{" "}
-                  <span className="font-medium text-ink">{tasks.length}</span> tasks
-                </p>
-              )}
 
               {filteredTasks.length === 0 ? (
                 <div
