@@ -254,7 +254,9 @@ function TaskList() {
       try {
         const endpoint = isCompany ? "/tasks/my-tasks" : "/tasks";
         const response = await api.get(endpoint);
-        setTasks(response.data.tasks || []);
+        const apiTasks = response.data.tasks || [];
+        console.log("5. NUMBER OF TASKS RETURNED BY GET /tasks/my-tasks:", apiTasks.length);
+        setTasks(apiTasks);
       } catch (error) {
         console.error(error);
       } finally {
@@ -269,15 +271,10 @@ function TaskList() {
     ACTIVE_TASK_STATUSES.includes(t.status)
   ).length;
 
-  console.log("COMPANY TAB:", companyTaskTab);
-  console.log("TOTAL TASKS FROM API:", tasks.length);
-  console.log(
-    "TASK STATUSES:",
-    tasks.reduce((acc, task) => {
-      acc[task.status] = (acc[task.status] || 0) + 1;
-      return acc;
-    }, {})
-  );
+  const statusBreakdown = tasks.reduce((acc, task) => {
+    acc[task.status] = (acc[task.status] || 0) + 1;
+    return acc;
+  }, {});
 
   // Filtering & Sorting
   let filteredTasks = tasks.filter((t) => {
@@ -304,6 +301,11 @@ function TaskList() {
     }
     return true;
   });
+
+  console.log("1. COMPANY TAB:", companyTaskTab);
+  console.log("2. TASKS.LENGTH:", tasks.length);
+  console.log("3. FILTEREDTASKS.LENGTH:", filteredTasks.length);
+  console.log("4. TASK STATUS BREAKDOWN:", statusBreakdown);
 
   filteredTasks.sort((a, b) => {
     if (sortBy === "oldest") {
@@ -400,10 +402,18 @@ function TaskList() {
             <div className="grid grid-cols-2 gap-2.5 md:col-span-4">
               <div className="rounded-2xl border border-border bg-background/80 px-3.5 py-2.5">
                 <p className="text-[10px] uppercase tracking-[0.13em] text-muted-foreground">
-                  {isCompany ? "Active Tasks" : "Total Available Tasks"}
+                  {isCompany
+                    ? companyTaskTab === "active"
+                      ? "Active Tasks"
+                      : "All Tasks"
+                    : "Total Available Tasks"}
                 </p>
                 <p className="mt-0.5 font-display text-xl text-ink md:text-2xl">
-                  {isCompany ? activeTasksCount : tasks.length}
+                  {isCompany
+                    ? companyTaskTab === "active"
+                      ? activeTasksCount
+                      : tasks.length
+                    : tasks.length}
                 </p>
               </div>
               <div className="rounded-2xl border border-border bg-background/80 px-3.5 py-2.5">
