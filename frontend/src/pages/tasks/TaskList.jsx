@@ -229,12 +229,20 @@ function FilterControls({
   );
 }
 
+const ACTIVE_TASK_STATUSES = [
+  "open",
+  "in_progress",
+  "under_review",
+  "revision_requested",
+];
+
 function TaskList() {
   const { user } = useAuth();
   const isCompany = user?.role === "company";
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [companyTaskTab, setCompanyTaskTab] = useState("active");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -257,8 +265,27 @@ function TaskList() {
     fetchTasks();
   }, [isCompany]);
 
+  const activeTasksCount = tasks.filter((t) =>
+    ACTIVE_TASK_STATUSES.includes(t.status)
+  ).length;
+
+  console.log("COMPANY TAB:", companyTaskTab);
+  console.log("TOTAL TASKS FROM API:", tasks.length);
+  console.log(
+    "TASK STATUSES:",
+    tasks.reduce((acc, task) => {
+      acc[task.status] = (acc[task.status] || 0) + 1;
+      return acc;
+    }, {})
+  );
+
   // Filtering & Sorting
   let filteredTasks = tasks.filter((t) => {
+    if (isCompany && companyTaskTab === "active") {
+      if (!ACTIVE_TASK_STATUSES.includes(t.status)) {
+        return false;
+      }
+    }
     if (selectedCategory !== "all" && t.category !== selectedCategory) {
       return false;
     }
@@ -373,9 +400,11 @@ function TaskList() {
             <div className="grid grid-cols-2 gap-2.5 md:col-span-4">
               <div className="rounded-2xl border border-border bg-background/80 px-3.5 py-2.5">
                 <p className="text-[10px] uppercase tracking-[0.13em] text-muted-foreground">
-                  {isCompany ? "Total Posted Tasks" : "Total Available Tasks"}
+                  {isCompany ? "Active Tasks" : "Total Available Tasks"}
                 </p>
-                <p className="mt-0.5 font-display text-xl text-ink md:text-2xl">{tasks.length}</p>
+                <p className="mt-0.5 font-display text-xl text-ink md:text-2xl">
+                  {isCompany ? activeTasksCount : tasks.length}
+                </p>
               </div>
               <div className="rounded-2xl border border-border bg-background/80 px-3.5 py-2.5">
                 <p className="text-[10px] uppercase tracking-[0.13em] text-muted-foreground">Active filters</p>
@@ -449,6 +478,34 @@ function TaskList() {
             className="min-w-0"
           >
             <div className="mx-auto max-w-4xl">
+              {isCompany && (
+                <div className="mb-6 flex items-center justify-between gap-4">
+                  <div className="inline-flex rounded-2xl border border-border bg-card/85 p-1.5 shadow-elegant backdrop-blur-sm">
+                    <button
+                      type="button"
+                      onClick={() => setCompanyTaskTab("active")}
+                      className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                        companyTaskTab === "active"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-surface hover:text-ink"
+                      }`}
+                    >
+                      Active Tasks
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCompanyTaskTab("all")}
+                      className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                        companyTaskTab === "all"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-surface hover:text-ink"
+                      }`}
+                    >
+                      All Tasks
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {filteredTasks.length === 0 ? (
                 <div

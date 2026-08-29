@@ -284,6 +284,10 @@ const getMyTasks = async (req, res) => {
                 "selectedApplicant",
                 "name individualType"
             )
+            .populate(
+                "postedBy",
+                "companyName"
+            )
             .sort({
                 createdAt: -1
             });
@@ -331,14 +335,10 @@ const getMyTasks = async (req, res) => {
             return taskData;
         });
 
-        const tasksWithApplications = tasksWithReviews.filter(
-            task => task.applicationCount > 0
-        );
-
         res.status(200).json({
             success: true,
-            count: tasksWithApplications.length,
-            tasks: tasksWithApplications
+            count: tasksWithReviews.length,
+            tasks: tasksWithReviews
         });
 
     } catch (error) {

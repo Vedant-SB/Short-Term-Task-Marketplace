@@ -49,11 +49,11 @@ const getCompanyDashboard = async (req, res) => {
             task => task._id
         );
 
-        // ── Applications count ──────────────────────────────────
-        // Count active applications (exclude rejected, withdrawn, expired, completed)
-        const applicationsReceived = await Application.countDocuments({
+        // ── Active Applications count ───────────────────────────
+        // Count only currently active applications (pending + accepted)
+        const activeApplications = await Application.countDocuments({
             taskId: { $in: taskIds },
-            status: { $ne: "withdrawn" }
+            status: { $in: ["pending", "accepted"] }
         });
 
         // ── Recent Tasks (latest 5) with application counts ─────
@@ -140,7 +140,7 @@ const getCompanyDashboard = async (req, res) => {
                 openTasks,
                 inProgressTasks,
                 completedTasks,
-                applicationsReceived,
+                activeApplications,
                 averageRating:
                     companyReviewSummary.averageRating,
                 reviewCount:
