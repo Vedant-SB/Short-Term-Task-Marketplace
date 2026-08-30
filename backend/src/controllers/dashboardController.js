@@ -41,7 +41,7 @@ const getCompanyDashboard = async (req, res) => {
             }),
             Task.find({
                 postedBy: companyId
-            }).select("_id status"),
+            }).select("_id status selectedApplicant"),
             getUserReviewSummary(companyId)
         ]);
 
@@ -49,12 +49,18 @@ const getCompanyDashboard = async (req, res) => {
             task => task._id
         );
 
+        const eligibleOpenTaskIds = companyTasks
+            .filter(task => task.status === "open" && !task.selectedApplicant)
+            .map(task => task._id);
+
         // ── Active Applications count ───────────────────────────
-        // Count only currently active applications (pending + accepted)
-        const activeApplications = await Application.countDocuments({
-            taskId: { $in: taskIds },
-            status: { $in: ["pending", "accepted"] }
-        });
+        // Count non-withdrawn applications belonging to open tasks awaiting applicant selection
+        const activeApplications = eligibleOpenTaskIds.length > 0
+            ? await Application.countDocuments({
+                taskId: { $in: eligibleOpenTaskIds },
+                status: { $ne: "withdrawn" }
+            })
+            : 0;
 
         // ── Recent Tasks (latest 5) with application counts ─────
         const recentTaskDocs = await Task.find({

@@ -68,22 +68,13 @@ function CompanyApplicants() {
     fetchTasks();
   }, []);
 
-  // Filter: show tasks whose application deadline is active OR deadline passed but no applicant selected.
-  // Hide: completed tasks, assigned tasks, cancelled tasks.
-  const filteredTasks = tasks.filter((task) => {
-    // Always hide completed / closed tasks that have a selected applicant
-    if (task.status === "completed") return false;
-    if (task.status === "closed" && task.selectedApplicant) return false;
-
-    // Show if deadline is still active
-    const daysLeft = getDaysLeft(task.applicationDeadline);
-    if (task.status === "open" && daysLeft !== null && daysLeft >= 0) return true;
-
-    // Show if deadline passed but no applicant selected (still needs selection)
-    if (!task.selectedApplicant) return true;
-
-    return false;
-  });
+  // Filter: Show ONLY tasks that are "open", have at least 1 application, and have no selected applicant
+  const filteredTasks = tasks.filter(
+    (task) =>
+      task.status === "open" &&
+      (task.applicationCount || 0) > 0 &&
+      !task.selectedApplicant
+  );
 
   if (loading) {
     return (
@@ -236,20 +227,27 @@ function CompanyApplicants() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-3 border-t border-border/60 px-6 py-4">
-                    <Link
-                      to={`/tasks/${task._id}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-medium text-ink shadow-sm transition-all duration-150 hover:bg-surface hover:shadow"
-                    >
-                      View Details
-                    </Link>
-                    <Link
-                      to={`/task-applicants/${task._id}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all duration-150 hover:brightness-110"
-                    >
-                      <Users className="h-3.5 w-3.5" />
-                      View Applicants
-                    </Link>
+                  <div className="flex items-center justify-between gap-2 border-t border-border/60 px-6 py-4">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                      {task.applicationCount} {task.applicationCount === 1 ? "applicant" : "applicants"}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/tasks/${task._id}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-ink shadow-sm transition-all duration-150 hover:bg-surface hover:shadow"
+                      >
+                        View Details
+                      </Link>
+                      <Link
+                        to={`/task-applicants/${task._id}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-all duration-150 hover:brightness-110"
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        View Applicants
+                      </Link>
+                    </div>
                   </div>
                 </motion.article>
               );
