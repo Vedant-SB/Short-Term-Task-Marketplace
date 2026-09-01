@@ -1,14 +1,16 @@
-    const express = require("express");
+const express = require("express");
 
-    const router = express.Router();
+const router = express.Router();
 
-    const {
-        getPublicProfile
-    } = require("../controllers/profileController");
+const {
+    getPublicProfile,
+    updateProfile
+} = require("../controllers/profileController");
 
-    const authMiddleware = require("../middleware/authMiddleware");
-    const validateObjectId = require("../middleware/validateObjectId");
+const authMiddleware = require("../middleware/authMiddleware");
+const validateObjectId = require("../middleware/validateObjectId");
 
-    router.get("/:userId", validateObjectId, authMiddleware, getPublicProfile);
+router.put("/", authMiddleware, updateProfile);
+router.get("/:userId", validateObjectId, authMiddleware, getPublicProfile);
 
-    module.exports = router;
+module.exports = router;

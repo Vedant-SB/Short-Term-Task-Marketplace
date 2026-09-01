@@ -11,6 +11,7 @@ import {
   ExternalLink,
   FolderX,
   MessageSquareX,
+  Clock,
 } from "lucide-react";
 import api from "../../api/axios";
 import { useAuth } from "../../context/useAuth";
@@ -125,6 +126,7 @@ function ApplicantPortfolio() {
   const { userId: paramUserId } = useParams();
   const { user } = useAuth();
   const userId = paramUserId || user?.userId;
+  const isOwnPortfolio = !paramUserId || paramUserId === user?.userId;
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -420,6 +422,46 @@ function ApplicantPortfolio() {
                         </div>
                         {project.companyReview && (
                           <p className="text-sm italic text-ink/90">"{project.companyReview}"</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Private Submission Details (Only for individual viewing own portfolio) */}
+                    {isOwnPortfolio && (project.submissionLink || project.submissionNote) && (
+                      <div className="mt-4 rounded-xl border border-indigo-200/80 bg-indigo-50/40 p-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-indigo-600" />
+                            Your Submission Details
+                          </span>
+                          {project.submittedAt && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Submitted {formatDate(project.submittedAt)}
+                            </span>
+                          )}
+                        </div>
+                        {project.submissionLink && (
+                          <div className="pt-1">
+                            <span className="text-xs font-semibold text-muted-foreground block mb-0.5">Submission Link:</span>
+                            <a
+                              href={project.submissionLink.startsWith("http") ? project.submissionLink : `https://${project.submissionLink}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:underline break-all"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                              {project.submissionLink}
+                            </a>
+                          </div>
+                        )}
+                        {project.submissionNote && (
+                          <div className="pt-1">
+                            <span className="text-xs font-semibold text-muted-foreground block mb-0.5">Submission Note:</span>
+                            <p className="text-xs text-ink/90 leading-relaxed whitespace-pre-line bg-white/70 rounded-lg p-2.5 border border-indigo-100">
+                              {project.submissionNote}
+                            </p>
+                          </div>
                         )}
                       </div>
                     )}

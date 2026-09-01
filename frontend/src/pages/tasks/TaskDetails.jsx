@@ -24,6 +24,9 @@ import {
   Globe,
   Folder,
   Users,
+  ClipboardCheck,
+  ExternalLink,
+  User,
 } from "lucide-react";
 import api from "../../api/axios";
 import { useAuth } from "../../context/useAuth";
@@ -280,11 +283,21 @@ function TaskDetails() {
   const isSelectedApplicant = task.selectedApplicant?._id === user?.userId || task.selectedApplicant === user?.userId;
   const companyReviewSubmitted = task.reviewStatus?.companyReviewSubmitted;
   const individualReviewSubmitted = task.reviewStatus?.individualReviewSubmitted;
-  const canEdit = isOwner && task.status === "open" && applicationCount === 0;
-  const canDelete = isOwner && task.status === "open" && applicationCount === 0;
-  const canExtendDeadline = isOwner && (task.status === "in_progress" || task.status === "revision_requested");
-  const daysLeft = getDaysLeft(task.status === "open" ? task.applicationDeadline : task.currentDeadline);
-  const deadlineDate = (task.status === "open" ? task.applicationDeadline : task.currentDeadline) ? formatDisplayDate(task.status === "open" ? task.applicationDeadline : task.currentDeadline) : null;
+  const isTaskOpen = task.status === "open";
+  const isTaskActiveWork = task.status === "in_progress" || task.status === "revision_requested";
+  const canEdit = isOwner && isTaskOpen && applicationCount === 0;
+  const canDelete = isOwner && (isTaskOpen || task.status === "closed") && applicationCount === 0;
+  const canExtendDeadline = isOwner && isTaskActiveWork;
+  const daysLeft = isTaskOpen
+    ? getDaysLeft(task.applicationDeadline)
+    : isTaskActiveWork
+    ? getDaysLeft(task.currentDeadline)
+    : null;
+  const deadlineDate = isTaskOpen
+    ? (task.applicationDeadline ? formatDisplayDate(task.applicationDeadline) : null)
+    : isTaskActiveWork
+    ? (task.currentDeadline ? formatDisplayDate(task.currentDeadline) : null)
+    : null;
   const statusInfo = STATUS_CONFIG[task.status] || STATUS_CONFIG.open;
   const urgency = getUrgencyLevel(daysLeft);
   const uStyle = URGENCY_STYLES[urgency];
@@ -412,6 +425,26 @@ function TaskDetails() {
       );
     }
 
+    /* Individual: Completed (other individuals) */
+    if (user?.role === "individual" && task.status === "completed") {
+      return (
+        <span className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+          <CheckCircle2 className="h-4 w-4" />
+          Task Completed
+        </span>
+      );
+    }
+
+    /* Individual: Closed Task */
+    if (user?.role === "individual" && task.status === "closed") {
+      return (
+        <span className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm font-bold text-zinc-600">
+          <Clock className="h-4 w-4 text-zinc-400" />
+          Task Closed
+        </span>
+      );
+    }
+
     /* Company Owner Actions */
     if (user?.role === "company" && isOwner) {
       return (
@@ -444,6 +477,20 @@ function TaskDetails() {
               <Star className="h-4 w-4 fill-amber-300 text-amber-300" />
               Leave Review
             </Link>
+          )}
+
+          {task.status === "completed" && companyReviewSubmitted && (
+            <span className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+              <CheckCircle2 className="h-4 w-4" />
+              Company Review Submitted
+            </span>
+          )}
+
+          {task.status === "closed" && !canDelete && (
+            <span className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm font-bold text-zinc-600">
+              <Clock className="h-4 w-4 text-zinc-400" />
+              Task Closed
+            </span>
           )}
 
           {(canEdit || canDelete) && (
@@ -495,7 +542,7 @@ function TaskDetails() {
             </div>
           )}
 
-          {canExtendDeadline && task.status !== "open" && (
+          {canExtendDeadline && (
             <div className="pt-2 border-t border-zinc-100">
               <p className="mb-2 text-xs font-semibold text-slate-600">Extend Submission Deadline</p>
               <div className="flex items-center gap-2">
@@ -591,16 +638,55 @@ function TaskDetails() {
                   <span className="text-2xl md:text-3xl font-bold text-slate-900">
                     ₹{task.budget?.toLocaleString("en-IN") ?? 0}
                   </span>
-                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}>
-                    <Clock className="h-3.5 w-3.5" />
-                    {getDeadlineLabel(daysLeft)}
-                  </span>
-                  {deadlineDate && (
-                    <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                      Deadline: {deadlineDate}
+                  {task.status === "completed" ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Completed
+                    </span>
+                  ) : task.status === "closed" ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-600">
+                      <Clock className="h-3.5 w-3.5" />
+                      Closed
+                    </span>
+                  ) : task.status === "under_review" ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">
+                      <Clock className="h-3.5 w-3.5" />
+                      Under Review
+                    </span>
+                  ) : (
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}>
+                      <Clock className="h-3.5 w-3.5" />
+                      {getDeadlineLabel(daysLeft)}
                     </span>
                   )}
+                  {task.status === "completed" ? (
+                    task.updatedAt && (
+                      <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1">
+                        <CalendarDays className="h-3.5 w-3.5 text-emerald-600" />
+                        Completed: {formatDisplayDate(task.updatedAt)}
+                      </span>
+                    )
+                  ) : task.status === "closed" ? (
+                    (task.applicationDeadline || task.updatedAt) && (
+                      <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1">
+                        <CalendarDays className="h-3.5 w-3.5 text-zinc-400" />
+                        Closed: {formatDisplayDate(task.applicationDeadline || task.updatedAt)}
+                      </span>
+                    )
+                  ) : task.status === "under_review" ? (
+                    task.submittedAt && (
+                      <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1">
+                        <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                        Submitted: {formatDisplayDate(task.submittedAt)}
+                      </span>
+                    )
+                  ) : deadlineDate ? (
+                    <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1">
+                      <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                      {task.status === "open" ? "Apply by: " : "Deadline: "}
+                      {deadlineDate}
+                    </span>
+                  ) : null}
                 </div>
               </div>
 
@@ -668,11 +754,15 @@ function TaskDetails() {
 
               <div className="bg-white rounded-2xl border border-zinc-200/80 p-4 flex items-center gap-3.5 shadow-sm">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100/80 text-violet-600 shrink-0">
-                  <Users className="h-5 w-5" />
+                  {task.selectedApplicant ? <User className="h-5 w-5" /> : <Users className="h-5 w-5" />}
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500">Applicants</p>
-                  <p className="text-base font-bold text-slate-900">{applicationCount} Applicants</p>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-slate-500">
+                    {task.selectedApplicant ? "Assignee" : "Applicants"}
+                  </p>
+                  <p className="text-base font-bold text-slate-900 truncate">
+                    {task.selectedApplicant ? task.selectedApplicant.name : `${applicationCount} Applicants`}
+                  </p>
                 </div>
               </div>
 
@@ -800,7 +890,122 @@ function TaskDetails() {
               </div>
             )}
 
-            {/* 7. Timeline */}
+            {/* 7. Submitted Work & Deliverables (Visible for completed, under_review, revision_requested or when submission exists) */}
+            {(task.status === "completed" || task.status === "under_review" || task.submissionLink || task.submissionNote) && (
+              <div className="bg-white rounded-2xl border border-zinc-200/80 p-5 md:p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between gap-4 border-b border-zinc-100 pb-3">
+                  <SectionTitle icon={ClipboardCheck}>
+                    {task.status === "completed" ? "Completed Work & Submission" : "Submitted Work"}
+                  </SectionTitle>
+                  {task.status === "completed" && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Work Approved
+                    </span>
+                  )}
+                </div>
+
+                {/* Submitter & Timestamps */}
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {task.selectedApplicant && (
+                    <div className="rounded-xl border border-zinc-100 bg-slate-50/60 p-3.5">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Completed By</p>
+                      <p className="mt-1 text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                        <User className="h-4 w-4 text-violet-600" />
+                        {task.selectedApplicant.name || "Assignee"}
+                      </p>
+                      {task.selectedApplicant.individualType && (
+                        <p className="mt-0.5 text-xs text-slate-500 capitalize">
+                          {task.selectedApplicant.individualType.replace(/_/g, " ")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {task.submittedAt && (
+                    <div className="rounded-xl border border-zinc-100 bg-slate-50/60 p-3.5">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Submitted At</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                        <Clock className="h-4 w-4 text-slate-400" />
+                        {formatDisplayDate(task.submittedAt)}
+                      </p>
+                    </div>
+                  )}
+                  {task.taskStartDate && (
+                    <div className="rounded-xl border border-zinc-100 bg-slate-50/60 p-3.5">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Started On</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-800">
+                        {formatDisplayDate(task.taskStartDate)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Submission Link */}
+                {task.submissionLink && (
+                  <div className="rounded-xl border border-zinc-200/80 bg-slate-50/60 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Submission Link</p>
+                    <a
+                      href={task.submissionLink.startsWith("http://") || task.submissionLink.startsWith("https://") ? task.submissionLink : `https://${task.submissionLink}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-bold text-violet-600 hover:text-violet-700 hover:underline break-all"
+                    >
+                      <ExternalLink className="h-4 w-4 shrink-0" />
+                      {task.submissionLink}
+                    </a>
+                  </div>
+                )}
+
+                {/* Submission Note */}
+                {task.submissionNote && (
+                  <div className="rounded-xl border border-zinc-200/80 bg-slate-50/60 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Submission Note / Details</p>
+                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                      {task.submissionNote}
+                    </p>
+                  </div>
+                )}
+
+                {/* Reviews Summary if task completed */}
+                {task.status === "completed" && (companyReviewSubmitted || individualReviewSubmitted) && (
+                  <div className="mt-4 pt-4 border-t border-zinc-100 space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Feedback & Ratings</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {task.reviewStatus?.companyReview && (
+                        <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-4 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-bold text-violet-900">Company Feedback</p>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                              <span className="text-xs font-bold text-slate-800">{task.reviewStatus.companyReview.rating}/5</span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-700 leading-relaxed italic">
+                            "{task.reviewStatus.companyReview.comment}"
+                          </p>
+                        </div>
+                      )}
+                      {task.reviewStatus?.individualReview && (
+                        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-bold text-emerald-900">Applicant Feedback</p>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                              <span className="text-xs font-bold text-slate-800">{task.reviewStatus.individualReview.rating}/5</span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-700 leading-relaxed italic">
+                            "{task.reviewStatus.individualReview.comment}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 8. Timeline */}
             <div className="bg-white rounded-2xl border border-zinc-200/80 p-5 md:p-6 shadow-sm">
               <SectionTitle icon={CalendarDays}>Timeline</SectionTitle>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -820,12 +1025,18 @@ function TaskDetails() {
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Duration</p>
                   <p className="mt-1 text-sm font-semibold text-slate-800">{task.duration ? `${task.duration} Days` : "N/A"}</p>
                 </div>
-                {task.status !== "open" && (
+                {task.status !== "open" && task.status !== "closed" && (
                   <div className="rounded-xl border border-zinc-100 bg-slate-50/60 px-4 py-3">
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Submission Deadline</p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">
                       {task.currentDeadline ? formatDisplayDate(task.currentDeadline) : "Not Started"}
                     </p>
+                  </div>
+                )}
+                {task.status === "completed" && task.updatedAt && (
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Completed Date</p>
+                    <p className="mt-1 text-sm font-semibold text-emerald-900">{formatDisplayDate(task.updatedAt)}</p>
                   </div>
                 )}
                 {task.deadlineExtensions && task.deadlineExtensions.length > 0 && (
@@ -837,7 +1048,7 @@ function TaskDetails() {
               </div>
             </div>
 
-            {/* 8. Revision Requested Card (Conditional) */}
+            {/* 9. Revision Requested Card (Conditional) */}
             {task.status === "revision_requested" && (
               <div className="bg-white rounded-2xl border border-orange-200/80 p-5 md:p-6 shadow-sm space-y-3">
                 <div className="flex items-center gap-2">
@@ -879,28 +1090,87 @@ function TaskDetails() {
                 </span>
               </div>
 
-              <div>
-                <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Time Remaining</p>
-                <span className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-bold ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}>
-                  <span className={`h-2 w-2 rounded-full ${uStyle.dot}`} />
-                  {getDeadlineLabel(daysLeft)}
-                </span>
-              </div>
-
-              {deadlineDate && (
+              {/* Time Remaining / Completion block */}
+              {task.status === "completed" ? (
                 <div>
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Deadline</p>
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Completion Status</p>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-700 shadow-sm">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    Task Completed
+                  </span>
+                </div>
+              ) : task.status === "closed" ? (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</p>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-zinc-100 px-3.5 py-1 text-xs font-bold text-zinc-600">
+                    <Clock className="h-3.5 w-3.5 text-zinc-400" />
+                    Task Closed
+                  </span>
+                </div>
+              ) : task.status === "under_review" ? (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Work Status</p>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3.5 py-1 text-xs font-bold text-amber-800 shadow-sm">
+                    <Clock className="h-3.5 w-3.5 text-amber-600" />
+                    Under Review
+                  </span>
+                </div>
+              ) : (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {task.status === "open" ? "Application Closing" : "Submission Due"}
+                  </p>
+                  <span className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-bold ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}>
+                    <span className={`h-2 w-2 rounded-full ${uStyle.dot}`} />
+                    {getDeadlineLabel(daysLeft)}
+                  </span>
+                </div>
+              )}
+
+              {/* Deadline / Completed Date block */}
+              {task.status === "completed" ? (
+                <div>
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Completed Date</p>
+                  <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                    <CalendarDays className="h-4 w-4 text-emerald-600" />
+                    {formatDisplayDate(task.updatedAt)}
+                  </p>
+                </div>
+              ) : task.status === "closed" ? (
+                <div>
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Closed Date</p>
+                  <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                    <CalendarDays className="h-4 w-4 text-zinc-400" />
+                    {formatDisplayDate(task.applicationDeadline || task.updatedAt)}
+                  </p>
+                </div>
+              ) : deadlineDate ? (
+                <div>
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {task.status === "open" ? "Application Deadline" : "Submission Deadline"}
+                  </p>
                   <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700">
                     <CalendarDays className="h-4 w-4 text-violet-500" />
                     {deadlineDate}
                   </p>
                 </div>
-              )}
+              ) : null}
 
-              <div>
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Applicants</p>
-                <p className="text-base font-bold text-slate-900">{applicationCount} Applicants</p>
-              </div>
+              {/* Total Applicants / Assignee */}
+              {task.selectedApplicant ? (
+                <div>
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Selected Assignee</p>
+                  <p className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                    <User className="h-4 w-4 text-violet-600" />
+                    {task.selectedApplicant.name}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Applicants</p>
+                  <p className="text-base font-bold text-slate-900">{applicationCount} Applicants</p>
+                </div>
+              )}
 
               <div className="pt-3 border-t border-zinc-100">
                 {renderPrimaryAction()}

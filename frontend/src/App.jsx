@@ -31,6 +31,7 @@ import CompanyApplicants from "./pages/applications/CompanyApplicants";
 import MyApplications from "./pages/applications/MyApplications";
 import AssignedTasks from "./pages/tasks/AssignedTasks";
 import Profile from "./pages/profile/Profile";
+import CompanyReviews from "./pages/profile/CompanyReviews";
 import ApplicantPortfolio from "./pages/profile/ApplicantPortfolio";
 
 import { AuthProvider } from "./context/AuthContext";
@@ -182,6 +183,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/profile/reviews"
+              element={
+                <ProtectedRoute allowedRoles={["company"]}>
+                  <CompanyReviews />
                 </ProtectedRoute>
               }
             />

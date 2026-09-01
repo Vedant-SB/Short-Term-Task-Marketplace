@@ -106,10 +106,113 @@ const STATUS_BADGE = {
   open: { label: "Open", cls: "bg-emerald-100 text-emerald-900 border-emerald-400" },
   in_progress: { label: "In Progress", cls: "bg-sky-50 text-sky-700 border-sky-300" },
   under_review: { label: "Under Review", cls: "bg-amber-50 text-amber-700 border-amber-300" },
-  completed: { label: "Completed", cls: "bg-gray-100 text-gray-500 border-gray-300" },
+  completed: { label: "Completed", cls: "bg-emerald-50 text-emerald-800 border-emerald-300 font-bold" },
   revision_requested: { label: "Revision", cls: "bg-orange-50 text-orange-700 border-orange-300" },
-  closed: { label: "Closed", cls: "bg-gray-100 text-gray-400 border-gray-300" },
+  closed: { label: "Closed", cls: "bg-zinc-100 text-zinc-600 border-zinc-300" },
 };
+
+function getTaskCardScheduleInfo(task) {
+  switch (task.status) {
+    case "completed":
+      return {
+        badge: (
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-[12px] font-bold text-emerald-700 shadow-sm">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            Completed
+          </span>
+        ),
+        dateLabel: task.updatedAt ? `Completed on ${formatDisplayDate(task.updatedAt)}` : "Task Completed",
+        urgencyKey: "none",
+      };
+    case "closed":
+      return {
+        badge: (
+          <span className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-zinc-100 px-3.5 py-1.5 text-[12px] font-bold text-zinc-600 shadow-sm">
+            <span className="h-2 w-2 rounded-full bg-zinc-400" />
+            Closed
+          </span>
+        ),
+        dateLabel: task.applicationDeadline ? `Closed on ${formatDisplayDate(task.applicationDeadline)}` : "Applications Closed",
+        urgencyKey: "none",
+      };
+    case "under_review":
+      return {
+        badge: (
+          <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3.5 py-1.5 text-[12px] font-bold text-amber-800 shadow-sm">
+            <span className="h-2 w-2 rounded-full bg-amber-500" />
+            Under Review
+          </span>
+        ),
+        dateLabel: task.submittedAt ? `Submitted on ${formatDisplayDate(task.submittedAt)}` : "Work Submitted",
+        urgencyKey: "none",
+      };
+    case "revision_requested": {
+      const days = getDaysLeft(task.currentDeadline);
+      const urgency = getUrgency(days);
+      const label =
+        days === null
+          ? "Revision in Progress"
+          : days < 0
+          ? "Revision Overdue"
+          : days === 0
+          ? "Revision Due Today"
+          : days === 1
+          ? "1 Day to Revise"
+          : `${days} Days to Revise`;
+      return {
+        badge: (
+          <span className="inline-flex items-center gap-2 rounded-full border border-orange-300 bg-orange-50 px-3.5 py-1.5 text-[12px] font-bold text-orange-800 shadow-sm">
+            <span className="h-2 w-2 rounded-full bg-orange-500" />
+            {label}
+          </span>
+        ),
+        dateLabel: task.currentDeadline ? `Deadline: ${formatDisplayDate(task.currentDeadline)}` : null,
+        urgencyKey: urgency,
+      };
+    }
+    case "in_progress": {
+      const days = getDaysLeft(task.currentDeadline);
+      const urgency = getUrgency(days);
+      const uStyle = URGENCY_STYLES[urgency] || URGENCY_STYLES.safe;
+      const label =
+        days === null
+          ? "In Progress"
+          : days < 0
+          ? "Submission Overdue"
+          : days === 0
+          ? "Submission Due Today"
+          : days === 1
+          ? "1 Day to Submit"
+          : `${days} Days to Submit`;
+      return {
+        badge: (
+          <span className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-bold shadow-sm ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}>
+            <span className={`h-2 w-2 rounded-full ${uStyle.dot}`} />
+            {label}
+          </span>
+        ),
+        dateLabel: task.currentDeadline ? `Submission Due: ${formatDisplayDate(task.currentDeadline)}` : null,
+        urgencyKey: urgency,
+      };
+    }
+    case "open":
+    default: {
+      const days = getDaysLeft(task.applicationDeadline);
+      const urgency = getUrgency(days);
+      const uStyle = URGENCY_STYLES[urgency] || URGENCY_STYLES.safe;
+      return {
+        badge: (
+          <span className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-bold shadow-sm ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}>
+            <span className={`h-2 w-2 rounded-full ${uStyle.dot}`} />
+            {getDeadlineLabel(days)}
+          </span>
+        ),
+        dateLabel: task.applicationDeadline ? `Deadline: ${formatDisplayDate(task.applicationDeadline)}` : null,
+        urgencyKey: urgency,
+      };
+    }
+  }
+}
 
 const inputCls =
   "w-full rounded-xl border border-border bg-background/70 px-4 py-2.5 text-sm text-ink placeholder:text-muted-foreground shadow-sm transition-all duration-200 focus:border-accent focus:bg-card focus:outline-none focus:ring-2 focus:ring-accent/20";
@@ -521,9 +624,16 @@ function TaskList() {
               ) : (
                 <div className="space-y-5">
                   {filteredTasks.map((task, i) => {
-                    const daysLeft = getDaysLeft(task.applicationDeadline);
-                    const urgency = getUrgency(daysLeft);
-                    const uStyle = URGENCY_STYLES[urgency];
+                    const scheduleInfo = getTaskCardScheduleInfo(task);
+                    const neutralWash = {
+                      wash: "from-transparent to-transparent",
+                      washHover: "group-hover:to-transparent",
+                      glow: "bg-transparent",
+                    };
+                    const uStyle =
+                      scheduleInfo.urgencyKey === "none"
+                        ? neutralWash
+                        : URGENCY_STYLES[scheduleInfo.urgencyKey] || URGENCY_STYLES.safe;
                     const statusInfo = STATUS_BADGE[task.status] || STATUS_BADGE.open;
                     const skills = task.skillsRequired || [];
                     const visibleSkills = skills.slice(0, 4);
@@ -532,7 +642,6 @@ function TaskList() {
                       task.createdAt,
                       task.postedAgo || task.postedRelativeTime
                     );
-                    const deadlineDateLabel = formatDisplayDate(task.applicationDeadline);
 
                     return (
                       <motion.article
@@ -635,16 +744,11 @@ function TaskList() {
                               </div>
 
                               <div className="min-w-[210px] flex-[1.25] px-4 py-1.5">
-                                <span
-                                  className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-bold shadow-sm transition-all duration-300 group-hover:brightness-105 ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}
-                                >
-                                  <span className={`h-2 w-2 rounded-full ${uStyle.dot}`} />
-                                  {getDeadlineLabel(daysLeft)}
-                                </span>
-                                {deadlineDateLabel && (
+                                {scheduleInfo.badge}
+                                {scheduleInfo.dateLabel && (
                                   <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/85">
                                     <CalendarDays className="h-3 w-3" strokeWidth={1.7} />
-                                    Deadline: {deadlineDateLabel}
+                                    {scheduleInfo.dateLabel}
                                   </p>
                                 )}
                               </div>

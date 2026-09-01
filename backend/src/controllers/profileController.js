@@ -180,7 +180,7 @@ const getPublicProfile = async (req, res) => {
                         task._id.toString()
                     );
 
-                return {
+                const item = {
 
                     taskId: task._id,
 
@@ -205,6 +205,14 @@ const getPublicProfile = async (req, res) => {
                         review?.comment || null
 
                 };
+
+                if (req.user && req.user.userId === userId) {
+                    item.submissionLink = task.submissionLink || "";
+                    item.submissionNote = task.submissionNote || "";
+                    item.submittedAt = task.submittedAt || null;
+                }
+
+                return item;
 
             });
 
@@ -339,6 +347,168 @@ const getPublicProfile = async (req, res) => {
     }
 };
 
+const isValidHttpUrl = (value) => {
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch (error) {
+        return false;
+    }
+};
+
+const normalizeOptionalString = (value) => {
+    if (typeof value !== "string") {
+        return "";
+    }
+
+    return value.trim();
+};
+
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        if (user.role === "company") {
+            const { companyName, industry, companyDescription, website } = req.body;
+
+            if (companyName !== undefined) {
+                const normName = normalizeOptionalString(companyName);
+                if (!normName) {
+                    return res.status(400).json({ success: false, message: "Company name is required" });
+                }
+                user.companyName = normName;
+            }
+
+            if (industry !== undefined) {
+                const normIndustry = normalizeOptionalString(industry);
+                if (!normIndustry) {
+                    return res.status(400).json({ success: false, message: "Industry is required" });
+                }
+                user.industry = normIndustry;
+            }
+
+            if (companyDescription !== undefined) {
+                const normDesc = normalizeOptionalString(companyDescription);
+                if (!normDesc || normDesc.length < 30 || normDesc.length > 500) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Company description must be between 30 and 500 characters"
+                    });
+                }
+                user.companyDescription = normDesc;
+            }
+
+            if (website !== undefined) {
+                const normWeb = normalizeOptionalString(website);
+                if (normWeb && !isValidHttpUrl(normWeb)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Website must be a valid URL (starting with http:// or https://)"
+                    });
+                }
+                user.website = normWeb;
+            }
+        } else if (user.role === "individual") {
+            const {
+                name,
+                bio,
+                college,
+                skills,
+                github,
+                portfolioWebsite,
+                company,
+                yearsOfExperience,
+                primaryDomain,
+                individualType
+            } = req.body;
+
+            if (name !== undefined) {
+                const normName = normalizeOptionalString(name);
+                if (!normName) {
+                    return res.status(400).json({ success: false, message: "Name is required" });
+                }
+                user.name = normName;
+            }
+
+            if (bio !== undefined) {
+                const normBio = normalizeOptionalString(bio);
+                if (!normBio) {
+                    return res.status(400).json({ success: false, message: "Bio is required" });
+                }
+                user.bio = normBio;
+            }
+
+            if (college !== undefined) {
+                user.college = normalizeOptionalString(college);
+            }
+
+            if (skills !== undefined) {
+                user.skills = Array.isArray(skills)
+                    ? skills.map(s => String(s || "").trim()).filter(Boolean)
+                    : typeof skills === "string"
+                    ? skills.split(",").map(s => s.trim()).filter(Boolean)
+                    : [];
+            }
+
+            if (github !== undefined) {
+                user.github = normalizeOptionalString(github);
+            }
+
+            if (portfolioWebsite !== undefined) {
+                const normPort = normalizeOptionalString(portfolioWebsite);
+                if (normPort && !isValidHttpUrl(normPort)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Portfolio website must be a valid URL (starting with http:// or https://)"
+                    });
+                }
+                user.portfolioWebsite = normPort;
+            }
+
+            if (company !== undefined) {
+                user.company = normalizeOptionalString(company);
+            }
+
+            if (yearsOfExperience !== undefined) {
+                user.yearsOfExperience = Number(yearsOfExperience) || 0;
+            }
+
+            if (primaryDomain !== undefined) {
+                user.primaryDomain = normalizeOptionalString(primaryDomain);
+            }
+
+            if (individualType !== undefined && individualType) {
+                user.individualType = individualType;
+            }
+        }
+
+        await user.save();
+
+        const userObj = user.toObject();
+        delete userObj.password;
+
+        res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user: userObj
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
-    getPublicProfile
+    getPublicProfile,
+    updateProfile
 };
