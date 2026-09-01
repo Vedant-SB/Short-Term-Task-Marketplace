@@ -8,15 +8,12 @@ import {
   Briefcase,
   CheckCircle2,
   Calendar,
-  IndianRupee,
-  Clock,
   ExternalLink,
-  ChevronRight,
   FolderX,
   MessageSquareX,
 } from "lucide-react";
 import api from "../../api/axios";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 
 /* ── Helpers ───────────────────────────────────────────────── */
 function formatDate(dateStr) {

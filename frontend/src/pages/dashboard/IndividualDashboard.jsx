@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -7,9 +7,6 @@ import {
   Send,
   CheckCircle2,
   Star,
-  Clock,
-  IndianRupee,
-  Calendar,
   ArrowRight,
   ChevronRight,
   Eye,
@@ -35,7 +32,6 @@ import {
   PrimaryButton,
   SecondaryButton,
   Button,
-  DangerButton,
   TableContainer,
   Table,
   TableHeader,
@@ -112,7 +108,6 @@ const fadeUp = {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 function IndividualDashboard() {
-  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -120,20 +115,33 @@ function IndividualDashboard() {
   const [withdrawTarget, setWithdrawTarget] = useState(null);
 
   const fetchDashboard = async () => {
-  try {
-    const res = await api.get("/dashboard/individual");
+    try {
+      const res = await api.get("/dashboard/individual");
 
-    setDashboard(res.data.dashboard);
-  } catch (err) {
-    console.error(err);
-    setError(err.response?.data?.message || "Failed to load dashboard");
-  } finally {
-    setLoading(false);
-  }
-};
+      setDashboard(res.data.dashboard);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || "Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchDashboard();
+    const loadDashboard = async () => {
+      try {
+        const res = await api.get("/dashboard/individual");
+
+        setDashboard(res.data.dashboard);
+      } catch (err) {
+        console.error(err);
+        setError(err.response?.data?.message || "Failed to load dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
   }, []);
 
   const handleWithdraw = (applicationId) => {

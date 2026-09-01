@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 
 import api from "../../api/axios";
 
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 
 function Login() {
   const navigate = useNavigate();

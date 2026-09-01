@@ -1,4 +1,3 @@
-import React from "react";
 
 export function Card({ children, className = "", hover = false, ...props }) {
   const hoverClasses = hover

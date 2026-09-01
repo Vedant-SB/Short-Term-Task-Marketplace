@@ -13,22 +13,10 @@ import {
   FolderOpen,
   SearchX,
   CalendarDays,
-  Users,
   IndianRupee,
 } from "lucide-react";
 import api from "../../api/axios";
-import { useAuth } from "../../context/AuthContext";
-
-/* ── Category accent map ─────────────────────────────────── */
-const CATEGORY_ACCENT = {
-  Design: "var(--accent)",
-  Development: "var(--primary)",
-  Data: "var(--sky)",
-  Writing: "var(--gold)",
-  Research: "var(--sky)",
-  Marketing: "var(--gold)",
-  Other: "var(--accent)",
-};
+import { useAuth } from "../../context/useAuth";
 
 /* ── Helpers ──────────────────────────────────────────────── */
 function getDaysLeft(deadline) {
@@ -255,7 +243,6 @@ function TaskList() {
         const endpoint = isCompany ? "/tasks/my-tasks" : "/tasks";
         const response = await api.get(endpoint);
         const apiTasks = response.data.tasks || [];
-        console.log("5. NUMBER OF TASKS RETURNED BY GET /tasks/my-tasks:", apiTasks.length);
         setTasks(apiTasks);
       } catch (error) {
         console.error(error);
@@ -271,10 +258,6 @@ function TaskList() {
     ACTIVE_TASK_STATUSES.includes(t.status)
   ).length;
 
-  const statusBreakdown = tasks.reduce((acc, task) => {
-    acc[task.status] = (acc[task.status] || 0) + 1;
-    return acc;
-  }, {});
 
   // Filtering & Sorting
   let filteredTasks = tasks.filter((t) => {
@@ -301,11 +284,6 @@ function TaskList() {
     }
     return true;
   });
-
-  console.log("1. COMPANY TAB:", companyTaskTab);
-  console.log("2. TASKS.LENGTH:", tasks.length);
-  console.log("3. FILTEREDTASKS.LENGTH:", filteredTasks.length);
-  console.log("4. TASK STATUS BREAKDOWN:", statusBreakdown);
 
   filteredTasks.sort((a, b) => {
     if (sortBy === "oldest") {

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  Send,
   Search,
   BadgeCheck,
   FolderX,
@@ -49,7 +48,18 @@ function MyApplications() {
   };
 
   useEffect(() => {
-    fetchApplications();
+    const loadApplications = async () => {
+      try {
+        const res = await api.get("/applications/my-applications");
+        setApplications(res.data.applications || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadApplications();
   }, []);
 
   const handleWithdraw = (applicationId) => {

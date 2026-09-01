@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   User,
@@ -17,7 +17,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import api from "../../api/axios";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 import { ELIGIBLE_LABELS } from "../tasks/taskFormConstants";
 
 /* ── Reusable section card ────────────────────────────────────── */

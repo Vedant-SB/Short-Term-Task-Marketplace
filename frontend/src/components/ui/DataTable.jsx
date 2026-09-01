@@ -1,4 +1,3 @@
-import React from "react";
 
 export function TableContainer({ children, className = "", ...props }) {
   return (

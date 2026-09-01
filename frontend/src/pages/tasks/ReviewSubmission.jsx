@@ -9,17 +9,15 @@ import {
   Star,
   CheckCircle2,
   RotateCcw,
-  MessageSquare,
   Send,
 } from "lucide-react";
 import api from "../../api/axios";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 import {
   PageHeader,
   Card,
   StatusBadge,
   TextAreaField,
-  SelectField,
   PrimaryButton,
   SecondaryButton,
   DangerButton,
@@ -27,6 +25,39 @@ import {
 } from "../../components/ui";
 
 const ease = [0.22, 1, 0.36, 1];
+
+/* ── Star rating selector ────────────────────────────────── */
+function StarSelector({ value, onChange }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Rating <span className="ml-1 text-red-500">*</span>
+      </label>
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            className="p-0.5 transition-transform hover:scale-110 cursor-pointer"
+          >
+            <Star
+              className={`h-7 w-7 ${
+                n <= value
+                  ? "fill-amber-400 text-amber-400"
+                  : "text-border hover:text-amber-300"
+              }`}
+              strokeWidth={1.5}
+            />
+          </button>
+        ))}
+        <span className="ml-2 text-sm font-semibold text-ink">
+          {value}/5
+        </span>
+      </div>
+    </div>
+  );
+}
 
 function formatDate(dateStr) {
   if (!dateStr) return "N/A";
@@ -288,37 +319,6 @@ function ReviewSubmission() {
     !individualReviewSubmitted;
 
   const showReviewForm = canCompanyReview || canIndividualReview;
-
-  /* ── Star rating selector ────────────────────────────────── */
-  const StarSelector = () => (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Rating <span className="ml-1 text-red-500">*</span>
-      </label>
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => setReviewRating(n)}
-            className="p-0.5 transition-transform hover:scale-110 cursor-pointer"
-          >
-            <Star
-              className={`h-7 w-7 ${
-                n <= reviewRating
-                  ? "fill-amber-400 text-amber-400"
-                  : "text-border hover:text-amber-300"
-              }`}
-              strokeWidth={1.5}
-            />
-          </button>
-        ))}
-        <span className="ml-2 text-sm font-semibold text-ink">
-          {reviewRating}/5
-        </span>
-      </div>
-    </div>
-  );
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-canvas">
@@ -694,7 +694,10 @@ function ReviewSubmission() {
                 </div>
 
                 <form onSubmit={handleReviewSubmit} className="space-y-5">
-                  <StarSelector />
+                  <StarSelector
+                    value={reviewRating}
+                    onChange={setReviewRating}
+                  />
 
                   <TextAreaField
                     label="Comment"

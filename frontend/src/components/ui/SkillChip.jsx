@@ -1,4 +1,3 @@
-import React from "react";
 
 export function SkillChip({ skill, children, className = "", ...props }) {
   return (

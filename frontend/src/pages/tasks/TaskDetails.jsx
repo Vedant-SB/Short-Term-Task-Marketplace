@@ -26,7 +26,7 @@ import {
   Users,
 } from "lucide-react";
 import api from "../../api/axios";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 import { ConfirmDialog } from "../../components/ui";
 
 const ELIGIBLE_LABELS = {
@@ -157,7 +157,24 @@ function TaskDetails() {
   }, [id]);
 
   useEffect(() => {
-    fetchTaskDetails();
+    const loadTaskDetails = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get(`/tasks/${id}`);
+        const taskData = res.data.task || {};
+        taskData.applicantsCount = res.data.applicationCount ?? taskData.applicantsCount ?? 0;
+        taskData.hasApplied = res.data.hasApplied ?? taskData.hasApplied ?? false;
+        taskData.applicationId = res.data.applicationId ?? taskData.applicationId ?? null;
+        taskData.applicationStatus = res.data.applicationStatus ?? taskData.applicationStatus ?? null;
+        setTask(taskData);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTaskDetails();
   }, [id]);
 
   /* ─── API handlers ─── */

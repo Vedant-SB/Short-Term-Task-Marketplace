@@ -1,4 +1,3 @@
-import React from "react";
 
 const STATUS_MAP = {
   open: { label: "Open", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },

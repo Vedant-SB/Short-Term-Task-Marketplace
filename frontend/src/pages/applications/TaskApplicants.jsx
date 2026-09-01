@@ -7,10 +7,8 @@ import {
   CheckCircle2,
   Briefcase,
   FolderOpen,
-  ExternalLink,
   UserCheck,
   XCircle,
-  UserX,
 } from "lucide-react";
 import api from "../../api/axios";
 import {
@@ -148,7 +146,18 @@ function TaskApplicants() {
   };
 
   useEffect(() => {
-    fetchApplicants();
+    const loadApplicants = async () => {
+      try {
+        const response = await api.get(`/applications/task/${taskId}`);
+        setApplications(response.data.applications);
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadApplicants();
   }, [taskId]);
 
   const handleAccept = (applicationId) => {
