@@ -21,7 +21,13 @@ import { useAuth } from "../../context/useAuth";
 /* ── Helpers ──────────────────────────────────────────────── */
 function getDaysLeft(deadline) {
   if (!deadline) return null;
-  return Math.ceil((new Date(deadline) - new Date()) / (1000 * 60 * 60 * 24));
+  const target = new Date(deadline);
+  if (Number.isNaN(target.getTime())) return null;
+  const diffTime = target.getTime() - new Date().getTime();
+  if (diffTime < 0) {
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24)) || -1;
+  }
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
 function getUrgency(daysLeft) {

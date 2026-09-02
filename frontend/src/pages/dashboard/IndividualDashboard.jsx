@@ -61,7 +61,13 @@ function getCategoryIcon(category) {
 /* ── Helpers ───────────────────────────────────────────────── */
 function getDaysLeft(deadline) {
   if (!deadline) return null;
-  return Math.ceil((new Date(deadline) - new Date()) / (1000 * 60 * 60 * 24));
+  const target = new Date(deadline);
+  if (Number.isNaN(target.getTime())) return null;
+  const diffTime = target.getTime() - new Date().getTime();
+  if (diffTime < 0) {
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24)) || -1;
+  }
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
 function formatDate(dateStr) {
@@ -357,6 +363,10 @@ function IndividualDashboard() {
                 <div className="divide-y divide-border/40">
                   {continueWorking.map((task) => {
                     const companyName = task.postedBy?.companyName || "Company";
+                    const isSubmissionDeadlinePassed =
+                      Boolean(task.currentDeadline) && new Date() > new Date(task.currentDeadline);
+                    const isOverdue =
+                      task.status === "in_progress" && isSubmissionDeadlinePassed && !task.submittedAt;
                     const daysLeft = getDaysLeft(task.currentDeadline);
 
                     return (
@@ -423,20 +433,33 @@ function IndividualDashboard() {
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                               Deadline
                             </p>
-                            <p className="text-xs md:text-sm font-semibold text-ink">
-                              {formatDate(task.currentDeadline)}
-                            </p>
-                            {daysLeft !== null && (
-                              <p
-                                className={`text-xs md:text-sm font-bold ${daysLeft <= 2
-                                  ? "text-red-500"
-                                  : daysLeft <= 5
-                                    ? "text-amber-600"
-                                    : "text-emerald-600"
-                                  }`}
-                              >
-                                {daysLeft <= 0 ? "Due today" : `${daysLeft} days left`}
-                              </p>
+                            {isOverdue ? (
+                              <>
+                                <p className="text-xs md:text-sm font-bold text-red-600">
+                                  Submission Overdue
+                                </p>
+                                <p className="text-xs text-muted-foreground font-medium">
+                                  Due: {formatDate(task.currentDeadline)}
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-xs md:text-sm font-semibold text-ink">
+                                  {formatDate(task.currentDeadline)}
+                                </p>
+                                {daysLeft !== null && (
+                                  <p
+                                    className={`text-xs md:text-sm font-bold ${daysLeft <= 2
+                                      ? "text-red-500"
+                                      : daysLeft <= 5
+                                        ? "text-amber-600"
+                                        : "text-emerald-600"
+                                      }`}
+                                  >
+                                    {daysLeft <= 0 ? "Due today" : `${daysLeft} days left`}
+                                  </p>
+                                )}
+                              </>
                             )}
                           </div>
 
@@ -473,7 +496,7 @@ function IndividualDashboard() {
                                 Resubmit Work
                               </Button>
                             </Link>
-                          ) : task.status === "in_progress" ? (
+                          ) : task.status === "in_progress" && !isOverdue ? (
                             <Link to={`/tasks/${task._id}/submit`}>
                               <PrimaryButton size="sm">
                                 Submit Work

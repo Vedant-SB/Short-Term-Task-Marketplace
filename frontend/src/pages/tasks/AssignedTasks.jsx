@@ -17,7 +17,13 @@ const STATUS_BADGE = {
 
 function getDaysLeft(deadline) {
   if (!deadline) return null;
-  return Math.ceil((new Date(deadline) - new Date()) / (1000 * 60 * 60 * 24));
+  const target = new Date(deadline);
+  if (Number.isNaN(target.getTime())) return null;
+  const diffTime = target.getTime() - new Date().getTime();
+  if (diffTime < 0) {
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24)) || -1;
+  }
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
 function formatDate(dateStr) {
@@ -181,13 +187,21 @@ function AssignedTasks() {
           <div className="space-y-4">
             {filteredTasks.map((task) => {
               const companyName = task.postedBy?.companyName || "Company";
+              const isSubmissionDeadlinePassed =
+                Boolean(task.currentDeadline) && new Date() > new Date(task.currentDeadline);
+              const isOverdue =
+                task.status === "in_progress" && isSubmissionDeadlinePassed && !task.submittedAt;
               const daysLeft = getDaysLeft(task.currentDeadline);
               const statusBadge = STATUS_BADGE[task.status] || STATUS_BADGE.in_progress;
 
               return (
                 <div
                   key={task._id}
-                  className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:shadow-elegant flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+                  className={`rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:shadow-elegant flex flex-col gap-4 md:flex-row md:items-center md:justify-between ${
+                    task.status === "revision_requested"
+                      ? "border-l-4 border-amber-500 bg-amber-50/20"
+                      : ""
+                  }`}
                 >
                   <div className="flex items-center gap-4 flex-1 min-w-[280px]">
                     <div
@@ -232,21 +246,34 @@ function AssignedTasks() {
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                         Deadline
                       </p>
-                      <p className="text-xs md:text-sm font-medium text-ink">
-                        {formatDate(task.currentDeadline)}
-                      </p>
-                      {daysLeft !== null && (
-                        <p
-                          className={`text-xs md:text-sm font-bold ${
-                            daysLeft <= 2
-                              ? "text-red-500"
-                              : daysLeft <= 5
-                              ? "text-amber-600"
-                              : "text-emerald-600"
-                          }`}
-                        >
-                          {daysLeft <= 0 ? "Due today" : `${daysLeft} days left`}
-                        </p>
+                      {isOverdue ? (
+                        <>
+                          <p className="text-xs md:text-sm font-bold text-red-600">
+                            Submission Overdue
+                          </p>
+                          <p className="text-xs text-muted-foreground font-medium">
+                            Due: {formatDate(task.currentDeadline)}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs md:text-sm font-medium text-ink">
+                            {formatDate(task.currentDeadline)}
+                          </p>
+                          {daysLeft !== null && (
+                            <p
+                              className={`text-xs md:text-sm font-bold ${
+                                daysLeft <= 2
+                                  ? "text-red-500"
+                                  : daysLeft <= 5
+                                  ? "text-amber-600"
+                                  : "text-emerald-600"
+                              }`}
+                            >
+                              {daysLeft <= 0 ? "Due today" : `${daysLeft} days left`}
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -278,7 +305,7 @@ function AssignedTasks() {
                       >
                         Resubmit Work
                       </Link>
-                    ) : task.status === "in_progress" ? (
+                    ) : task.status === "in_progress" && !isOverdue ? (
                       <Link
                         to={`/tasks/${task._id}/submit`}
                         className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:brightness-110"

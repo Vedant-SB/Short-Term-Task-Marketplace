@@ -79,6 +79,9 @@ function getDaysLeft(dateStr) {
   if (isNaN(target.getTime())) return null;
   const now = new Date();
   const diffTime = target.getTime() - now.getTime();
+  if (diffTime < 0) {
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24)) || -1;
+  }
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
@@ -285,6 +288,10 @@ function TaskDetails() {
   const individualReviewSubmitted = task.reviewStatus?.individualReviewSubmitted;
   const isTaskOpen = task.status === "open";
   const isTaskActiveWork = task.status === "in_progress" || task.status === "revision_requested";
+  const isSubmissionDeadlinePassed =
+    Boolean(task.currentDeadline) && new Date() > new Date(task.currentDeadline);
+  const isSubmissionOverdue =
+    task.status === "in_progress" && isSubmissionDeadlinePassed && !task.submittedAt;
   const canEdit = isOwner && isTaskOpen && applicationCount === 0;
   const canDelete = isOwner && (isTaskOpen || task.status === "closed") && applicationCount === 0;
   const canExtendDeadline = isOwner && isTaskActiveWork;
@@ -383,13 +390,13 @@ function TaskDetails() {
       (task.status === "in_progress" || task.status === "revision_requested") &&
       isSelectedApplicant
     ) {
-      const submissionClosed = task.currentDeadline && new Date() > new Date(task.currentDeadline);
+      const submissionClosed = isSubmissionDeadlinePassed && !task.submittedAt;
       return (
         <div className="space-y-2">
           {submissionClosed ? (
             <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center">
-              <p className="text-sm font-bold text-red-700">Submission Deadline Passed</p>
-              <p className="mt-1 text-xs text-red-600">Contact company to request an extension.</p>
+              <p className="text-sm font-bold text-red-700">Submission Overdue</p>
+              <p className="mt-1 text-xs text-red-600">The submission deadline for this task has passed.</p>
             </div>
           ) : (
             <Link
@@ -653,6 +660,11 @@ function TaskDetails() {
                       <Clock className="h-3.5 w-3.5" />
                       Under Review
                     </span>
+                  ) : isSubmissionOverdue ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-300 bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-700">
+                      <Clock className="h-3.5 w-3.5 text-red-500" />
+                      Submission Overdue
+                    </span>
                   ) : (
                     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${uStyle.bg} ${uStyle.text} ${uStyle.border}`}>
                       <Clock className="h-3.5 w-3.5" />
@@ -683,7 +695,11 @@ function TaskDetails() {
                   ) : deadlineDate ? (
                     <span className="text-xs text-slate-500 font-medium inline-flex items-center gap-1">
                       <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                      {task.status === "open" ? "Apply by: " : "Deadline: "}
+                      {task.status === "open"
+                        ? "Apply by: "
+                        : isSubmissionOverdue
+                        ? "Submission Due: "
+                        : "Deadline: "}
                       {deadlineDate}
                     </span>
                   ) : null}
@@ -1115,6 +1131,16 @@ function TaskDetails() {
                     Under Review
                   </span>
                 </div>
+              ) : isSubmissionOverdue ? (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Submission Status
+                  </p>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-red-300 bg-red-50 px-3.5 py-1 text-xs font-bold text-red-700 shadow-sm">
+                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                    Submission Overdue
+                  </span>
+                </div>
               ) : (
                 <div>
                   <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -1147,7 +1173,11 @@ function TaskDetails() {
               ) : deadlineDate ? (
                 <div>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    {task.status === "open" ? "Application Deadline" : "Submission Deadline"}
+                    {task.status === "open"
+                      ? "Application Deadline"
+                      : isSubmissionOverdue
+                      ? "Submission Due"
+                      : "Submission Deadline"}
                   </p>
                   <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700">
                     <CalendarDays className="h-4 w-4 text-violet-500" />
